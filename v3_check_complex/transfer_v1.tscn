@@ -1,0 +1,52 @@
+[gd_scene load_steps=6 format=3 uid="uid://prx5v7aj0ne2"]
+
+[ext_resource type="Script" uid="uid://bih70ekxymkyc" path="res://transfer_v1/transfer_v_1.gd" id="1_cters"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_6p1b5"]
+radius = 19.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wk7hv"]
+size = Vector2(56, 24)
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_2c4wj"]
+points = PackedVector2Array(-29, -26, -67, -2, -28, 28)
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_6p1b5"]
+points = PackedVector2Array(32, -14, 18, 0, 33, 19, 71, 4)
+
+[node name="TransferV1" type="Node2D" node_paths=PackedStringArray("origin_area_2d", "target_area_2d")]
+script = ExtResource("1_cters")
+origin_area_2d = NodePath("OriginArea2D")
+target_area_2d = NodePath("TargetArea2D")
+
+[node name="OriginArea2D" type="Area2D" parent="."]
+position = Vector2(165, 268)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OriginArea2D"]
+position = Vector2(-1, -46)
+shape = SubResource("CircleShape2D_6p1b5")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="OriginArea2D"]
+position = Vector2(-1, 50)
+shape = SubResource("RectangleShape2D_wk7hv")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="OriginArea2D"]
+shape = SubResource("ConvexPolygonShape2D_2c4wj")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="OriginArea2D"]
+position = Vector2(20, 1)
+rotation = 0.958186
+shape = SubResource("ConvexPolygonShape2D_6p1b5")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="OriginArea2D"]
+position = Vector2(-3, -61)
+polygon = PackedVector2Array(-29, -26, -67, -2, -28, 28)
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="OriginArea2D"]
+position = Vector2(9, -63)
+polygon = PackedVector2Array(32, -14, 18, 0, 33, 19, 71, 4)
+
+[node name="TargetArea2D" type="Area2D" parent="."]
+
+[node name="ReubicationMarker2D" type="Marker2D" parent="."]
+position = Vector2(871, 127)

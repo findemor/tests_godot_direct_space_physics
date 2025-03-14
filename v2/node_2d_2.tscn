@@ -1,0 +1,61 @@
+[gd_scene load_steps=4 format=3 uid="uid://cwaafkn1jlp41"]
+
+[ext_resource type="Script" uid="uid://bnhpieriy3jyb" path="res://v2/caster_2.gd" id="1_icdqf"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_icdqf"]
+size = Vector2(62.5308, 38.5748)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_24nmx"]
+size = Vector2(43.9663, 84.9473)
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Caster" type="Polygon2D" parent="."]
+position = Vector2(570, 104)
+polygon = PackedVector2Array(-19, -18, 1, 26, 23, -23, -1, -11)
+script = ExtResource("1_icdqf")
+
+[node name="Brick" type="Area2D" parent="."]
+position = Vector2(993, 227)
+rotation = 1.58532
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Brick"]
+position = Vector2(-22.2518, -18.4181)
+shape = SubResource("RectangleShape2D_icdqf")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Brick"]
+position = Vector2(31.0258, 8.50653)
+shape = SubResource("RectangleShape2D_24nmx")
+
+[node name="Floor" type="RigidBody2D" parent="."]
+position = Vector2(563, 501)
+gravity_scale = 0.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+
+[node name="A" type="Polygon2D" parent="."]
+color = Color(0, 0.660604, 0.660604, 1)
+polygon = PackedVector2Array(0, -10, -9, 0, 0, 11, 9, 0)
+
+[node name="ConvexShadow" type="Polygon2D" parent="."]
+position = Vector2(1107, 218)
+color = Color(0.662745, 0.568627, 0.25098, 0.376471)
+polygon = PackedVector2Array(-33, -32, 55, -33, 53, 50, 3, 48, 8, 1, -52, 3, -55, -36)
+
+[node name="B" type="Polygon2D" parent="."]
+color = Color(1, 0.24085, 0.399284, 1)
+polygon = PackedVector2Array(0, -12, -11, -16, 0, 0, 11, -16)
+
+[node name="MotionUnsafe" type="Polygon2D" parent="."]
+visible = false
+scale = Vector2(-1, -1)
+color = Color(0, 1, 0.4, 1)
+polygon = PackedVector2Array(26, -12, 0, 0, 27, 12, 17, 0)
+
+[node name="MotionSafe" type="Polygon2D" parent="."]
+color = Color(1, 0.388235, 0.4, 1)
+polygon = PackedVector2Array(26, -12, 0, 0, 27, 12, 17, 0)

@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://h0rn51c8bijp"]
+
+[ext_resource type="Script" uid="uid://1gabok0eljyx" path="res://caster.gd" id="1_wtcfe"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Caster" type="Polygon2D" parent="." node_paths=PackedStringArray("rigidbody_a")]
+position = Vector2(570, 104)
+polygon = PackedVector2Array(-19, -18, 1, 26, 23, -23, -1, -11)
+script = ExtResource("1_wtcfe")
+rigidbody_a = NodePath("../Pieza")
+
+[node name="Pieza" type="RigidBody2D" parent="."]
+position = Vector2(993, 227)
+gravity_scale = 0.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Pieza"]
+polygon = PackedVector2Array(-33, -32, 55, -33, 53, 50, 3, 48, 8, 1, -52, 3, -55, -36)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Pieza"]
+polygon = PackedVector2Array(-33, -32, 55, -33, 53, 50, 3, 48, 8, 1, -52, 3, -55, -36)
+
+[node name="Floor" type="RigidBody2D" parent="."]
+position = Vector2(563, 501)
+gravity_scale = 0.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)

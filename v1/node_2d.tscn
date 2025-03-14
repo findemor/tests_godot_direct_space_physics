@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3 uid="uid://h0rn51c8bijp"]
+
+[ext_resource type="Script" uid="uid://1gabok0eljyx" path="res://v1/caster.gd" id="1_wtcfe"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Caster" type="Polygon2D" parent="." node_paths=PackedStringArray("brick")]
+position = Vector2(570, 104)
+polygon = PackedVector2Array(-19, -18, 1, 26, 23, -23, -1, -11)
+script = ExtResource("1_wtcfe")
+brick = NodePath("../Brick")
+
+[node name="Brick" type="Area2D" parent="."]
+position = Vector2(993, 227)
+rotation = 1.58532
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Brick"]
+polygon = PackedVector2Array(-33, -32, 55, -33, 53, 50, 3, 48, 8, 1, -52, 3, -55, -36)
+
+[node name="Floor" type="RigidBody2D" parent="."]
+position = Vector2(563, 501)
+gravity_scale = 0.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+
+[node name="A" type="Polygon2D" parent="."]
+color = Color(0, 0.660604, 0.660604, 1)
+polygon = PackedVector2Array(0, -10, -9, 0, 0, 11, 9, 0)
+
+[node name="ConvexShadow" type="Polygon2D" parent="."]
+position = Vector2(1107, 218)
+color = Color(0.662745, 0.568627, 0.25098, 0.376471)
+polygon = PackedVector2Array(-33, -32, 55, -33, 53, 50, 3, 48, 8, 1, -52, 3, -55, -36)
+
+[node name="B" type="Polygon2D" parent="."]
+color = Color(1, 0.24085, 0.399284, 1)
+polygon = PackedVector2Array(0, -12, -11, -16, 0, 0, 11, -16)
+
+[node name="MotionUnsafe" type="Polygon2D" parent="."]
+visible = false
+scale = Vector2(-1, -1)
+color = Color(0, 1, 0.4, 1)
+polygon = PackedVector2Array(26, -12, 0, 0, 27, 12, 17, 0)
+
+[node name="MotionSafe" type="Polygon2D" parent="."]
+color = Color(1, 0.388235, 0.4, 1)
+polygon = PackedVector2Array(26, -12, 0, 0, 27, 12, 17, 0)
