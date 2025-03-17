@@ -33,16 +33,15 @@ func transfer(origin_container:Node2D, target_container:Node2D, clear_existing:b
 	for sr in all_shapes:
 		var new_polygon:CollisionShape2D = CollisionShape2D.new()
 		new_polygon.shape = sr.shape
-		#new_polygon.global_transform = origin_container.global_transform * sr.owner_local_transform
-		
-		#var global_xform:Transform2D = origin_container.global_transform * sr.owner_local_transform
-		#if reubication_position != Vector2.INF: global_xform.origin = reubication_position
+
+		#var container_global_xform:Transform2D = origin_container.global_transform
+		#if reubication_position != Vector2.INF: container_global_xform.origin = reubication_position
+		#var global_xform:Transform2D = container_global_xform * sr.owner_local_transform
 		#new_polygon.global_transform = global_xform
-		var container_global_xform:Transform2D = origin_container.global_transform
-		if reubication_position != Vector2.INF: container_global_xform.origin = reubication_position
-		var global_xform:Transform2D = container_global_xform * sr.owner_local_transform
 		
-		new_polygon.global_transform = global_xform
+		var container_global_xform:Transform2D = sr.owner_global_transform
+		container_global_xform.origin = sr.owner_global_transform.origin + Vector2(300, 300) - origin_area_2d.global_position
+		new_polygon.global_transform = container_global_xform#global_xform
 		
 		target_container.add_child(new_polygon)
 		
