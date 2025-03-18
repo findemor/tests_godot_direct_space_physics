@@ -5,8 +5,8 @@ extends Node2D
 @onready var target_container: Node2D = $TargetContainer
 @export var sweeper_speed:float = 100
 
-@export var sweeper:Sweeper_v4
-@onready var character_body_2d: CharacterBody2D = $Sweeper/CharacterBody2D
+@export var sweeper:Sweeper
+@onready var character_body_2d: CharacterBody2D = $CharacterBody2D
 
 
 func _input(event: InputEvent) -> void:
@@ -18,12 +18,12 @@ func _input(event: InputEvent) -> void:
 		
 func _physics_process(delta: float) -> void:
 	if Engine.get_physics_frames() % 30 == 0:
-		transfer(origin_area_2d, sweeper.global_position)
+		transfer(origin_area_2d, character_body_2d.global_position)
 		
 	if Input.is_action_pressed("ui_left"):
-		sweeper.position += Vector2.LEFT * sweeper_speed * delta
+		character_body_2d.position += Vector2.LEFT * sweeper_speed * delta
 	if Input.is_action_pressed("ui_right"):
-		sweeper.position += Vector2.RIGHT * sweeper_speed * delta
+		character_body_2d.position += Vector2.RIGHT * sweeper_speed * delta
 
 
 	
@@ -35,10 +35,10 @@ func _physics_process(delta: float) -> void:
 func transfer(origin_container:Node2D, reubication_position:Vector2 = Vector2.INF):
 	
 	## obtenemos todas las shapes que contiene el nodo de origen
-	var all_shapes:Array[Sweeper_v4.ShapeData] = Sweeper_v4.get_all_shapes(origin_container, reubication_position)
+	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_all_shapes(origin_container, reubication_position)
 
 	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
-	var sr:Vector2 = sweeper.sweep(sweeper.global_position, Vector2.DOWN * 500, [character_body_2d.get_rid()])
+	var sr:Vector2 = sweeper.sweep(character_body_2d.global_position, Vector2.DOWN * 500, [character_body_2d.get_rid()])
 
 	origin_container.global_position = sr
 	

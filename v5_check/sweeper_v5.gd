@@ -1,4 +1,4 @@
-class_name Sweeper extends Polygon2D
+class_name Sweeper extends Node
 
 ## Esta clase hace un motion_cast de una estructura formada por varias formas convexas
 ## Conserva la posición relativa de cada forma en la estructura y su rotación global,
@@ -10,6 +10,7 @@ const END_MOTION_CONTACT_GUARANTEE_MARGIN:float = 10 ## pixeles que se alarga el
 @export_flags_2d_physics var collision_mask ## mascara de colisión de los objetos que pueden ser detectados como obstaculos durante el motion_cast
 @export var collide_with_areas:bool = false
 @export var collide_with_bodies:bool = true
+@export var collision_margin:float = 0.0
 
 var shapes:Array[ShapeData] = [] ## información sobre las formas que componen la estructura que intentará reposicionarse
 var space_state: PhysicsDirectSpaceState2D  ## Espacio de física en el que se realiza la búsqueda
@@ -125,6 +126,7 @@ func _sweep(shape_data:ShapeData, cast_length:Vector2,\
 	query.collide_with_areas = collide_with_areas
 	query.collide_with_bodies = collide_with_bodies
 	query.collision_mask = collision_mask
+	query.margin = collision_margin
 	query.motion = cast_length
 	query.shape = shape_data.shape
 	query.transform = shape_data.get_anchor_transform(cast_origin_global_position)
@@ -192,6 +194,7 @@ func _shape_intersects(shape_data:ShapeData, anchor_global_position:Vector2, exc
 	query.collide_with_areas = collide_with_areas
 	query.collide_with_bodies = collide_with_bodies
 	query.collision_mask = collision_mask
+	query.margin = collision_margin
 	query.shape = shape_data.shape
 	query.transform = shape_data.get_anchor_transform(anchor_global_position)
 	query.exclude = excluded_rids #[area_to_place.get_rid()]

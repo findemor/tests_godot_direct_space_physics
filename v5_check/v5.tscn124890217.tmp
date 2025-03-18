@@ -1,7 +1,7 @@
-[gd_scene load_steps=7 format=3 uid="uid://68q847ntd5g6"]
+[gd_scene load_steps=7 format=3 uid="uid://b3souq1mw5xxw"]
 
-[ext_resource type="Script" uid="uid://dusgrfk1fxdic" path="res://v4_check_complex_transfer/v4.gd" id="1_ldups"]
-[ext_resource type="Script" uid="uid://dr6055i1xrgko" path="res://v4_check_complex_transfer/sweeper_v4.gd" id="2_bbo4x"]
+[ext_resource type="Script" uid="uid://d2k8xlahcfwt0" path="res://v5_check/v5.gd" id="1_o1spk"]
+[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://v5_check/sweeper_v5.gd" id="2_vpo6d"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ldups"]
 radius = 25.0
@@ -17,20 +17,21 @@ size = Vector2(56, 24)
 points = PackedVector2Array(-29, -26, -67, -2, -28, 28)
 
 [node name="Node2D" type="Node2D" node_paths=PackedStringArray("origin_area_2d", "sweeper")]
-script = ExtResource("1_ldups")
+script = ExtResource("1_o1spk")
 origin_area_2d = NodePath("OriginArea2D")
 sweeper = NodePath("Sweeper")
 
-[node name="Sweeper" type="Polygon2D" parent="."]
-position = Vector2(570, 104)
-polygon = PackedVector2Array(-19, -18, 1, 26, 23, -23, -1, -11)
-script = ExtResource("2_bbo4x")
-collision_mask = 1
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="Sweeper"]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Sweeper/CharacterBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
 shape = SubResource("CapsuleShape2D_ldups")
+
+[node name="Sweeper" type="Node" parent="."]
+script = ExtResource("2_vpo6d")
+collision_mask = 1
+collide_with_areas = null
+collide_with_bodies = null
+collision_margin = 0.5
 
 [node name="OriginArea2D" type="Area2D" parent="."]
 position = Vector2(165, 268)
