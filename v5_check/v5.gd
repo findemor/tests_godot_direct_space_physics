@@ -4,6 +4,7 @@ extends Node2D
 @export var origin_area_2d:Node2D
 @onready var target_container: Node2D = $TargetContainer
 @export var sweeper_speed:float = 100
+@export var cast_motion:Vector2 = Vector2.DOWN * 500
 
 @export var sweeper:Sweeper
 @onready var character_body_2d: CharacterBody2D = $CharacterBody2D
@@ -38,11 +39,36 @@ func transfer(origin_container:Node2D, reubication_position:Vector2 = Vector2.IN
 	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_all_shapes(origin_container, reubication_position)
 
 	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
-	var sr:Vector2 = sweeper.sweep(character_body_2d.global_position, Vector2.DOWN * 500, [character_body_2d.get_rid()])
-
+	var sr:Vector2 = sweeper.sweep(character_body_2d.global_position, cast_motion, [character_body_2d.get_rid()])
 	origin_container.global_position = sr
-	
 	prints("collision at start",sweeper.intersects(target_container.global_position)  ,"collision at end", sweeper.intersects(sr), "FPS", Engine.get_frames_per_second())
+	
+	
+	var p = sweeper.get_rest_positions(origin_container, origin_container.global_position.x)
+	$CenterMarker.global_position = p[0]
+	$BotMarkerBot.global_position = p[1]
+	$TopMarker.global_position = p[2]
+	$BotMarker.global_position = p[3]
+	$TopMarkerBot.global_position = p[4]
+	
+	var cast_length:float = 1000
+	#
+	#var casts:Array[Vector2] = [Vector2.DOWN * cast_length, Vector2.DOWN * cast_length, Vector2.UP * cast_length]
+	#var c = sweeper.get_ray_intersections(p, casts)
+	#$CenterCollision.global_position = c[0]
+	#$BotCollision.global_position = c[1]
+	#$TopCollision.global_position = c[2]
+
+	#
+	#var data = sweeper.test_rest(all_shapes[0], character_body_2d.global_position, [character_body_2d.get_rid()])
+	#
+	#all_shapes[0].get_anchor_transform(character_body_2d.global_position)
+	#
+	#if data != null and data.has("point"):
+		#$Polygon2D.global_position = data.point
+	#else:
+		#$Polygon2D.global_position = Vector2(0, 10)
+	
 	
 	## creamos los nuevos nodos asignandole sus propiedades
 	#for sr in all_shapes:
