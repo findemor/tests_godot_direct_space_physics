@@ -304,7 +304,7 @@ func get_ray_intersections(points:Array[Vector2], casts:Array[Vector2]) -> Array
 ## [2]: highest_point, posición del punto más alto de la estructura formada por las formas. Es decir, aquel punto en el que la coordenada Y es menor.
 ## [3]: top_in_lowest_x, Punto más alto (Y min.) en la misma X que el más bajo
 ## [4]: bottom_in_highest_x, Punto más bajo (Y max.) en la misma X que el más alto
-func get_rest_positions(container: Node2D, x_target: float) -> Array[Vector2]:
+func get_key_positions(container: Node2D, x_target: float) -> Array[Vector2]:
 	# -- PRIMER PASO: hallamos lowest_point (Y mayor) y highest_point (Y menor) en todos los nodos --
 	var lowest_point = Vector2.INF
 	var lowest_y = -INF
@@ -370,296 +370,207 @@ func get_rest_positions(container: Node2D, x_target: float) -> Array[Vector2]:
 					highest_point = top
 
 	# -- SEGUNDO PASO: buscamos (1) intersección máx. en x_target, 
-	#                  (2) intersección mín. en x = lowest_point.x
-	#                  (3) intersección máx. en x = highest_point.x --
-	var best_point = _get_intersection_at_x(container, x_target, true)    # máx. Y
-	var top_in_lowest_x = Vector2.INF
-	var bottom_in_highest_x = Vector2.INF
-
-	if lowest_point != Vector2.INF:
-		# "Punto más alto" en la misma X que el "más bajo" => buscamos intersección mín. Y
-		top_in_lowest_x = _get_intersection_at_x(container, lowest_point.x, false)
-	if highest_point != Vector2.INF:
-		# "Punto más bajo" en la misma X que el "más alto" => buscamos intersección máx. Y
-		bottom_in_highest_x = _get_intersection_at_x(container, highest_point.x, true)
+	# "Punto más alto" en la misma X que el "más bajo" => buscamos intersección mín. Y
+	# "Punto más bajo" en la misma X que el "más alto" => buscamos intersección máx. Y
+	
+	var key_positions_opposed:Array[Vector2] = VertexMath.get_key_positions_opposed_in_one_pass(container, highest_point.x, x_target, lowest_point.x)
 
 	return [
-		best_point,        # 0) Intersección en x_target (Y máx.)
+		key_positions_opposed[1],        # 0) Intersección en x_target (Y máx.)
 		lowest_point,      # 1) Punto global más abajo (Y más grande)
 		highest_point,     # 2) Punto global más arriba (Y más pequeño)
-		top_in_lowest_x,   # 3) Punto más alto (Y min.) en la misma X que el más bajo
-		bottom_in_highest_x# 4) Punto más bajo (Y max.) en la misma X que el más alto
+		key_positions_opposed[2],   # 3) Punto más alto (Y min.) en la misma X que el más bajo
+		key_positions_opposed[0] # 4) Punto más bajo (Y max.) en la misma X que el más alto
 	]
 
 
-func _get_intersection_at_x(container: Node2D, x_coord: float, want_max_y: bool) -> Vector2:
-	# Retorna la intersección con las formas en x_coord. 
-	# Si want_max_y = true, busca la Y más grande; si es false, la Y más pequeña.
-	var chosen_point = Vector2.INF
-	var best_y = -INF if want_max_y else INF
 
-	for child in container.get_children():
-		# -- POLÍGONOS (CollisionPolygon2D o ConvexPolygonShape2D) --
-		if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
-			var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
-			for i in range(polygon.size()):
-				var p1 = child.global_transform * polygon[i]
-				var p2 = child.global_transform * polygon[(i + 1) % polygon.size()]
-				if ((p1.x <= x_coord and x_coord <= p2.x) or (p2.x <= x_coord and x_coord <= p1.x)) and p1.x != p2.x:
-					var inter_y = p1.y + (p2.y - p1.y) * ((x_coord - p1.x) / (p2.x - p1.x))
-					if want_max_y:
-						if inter_y > best_y:
-							best_y = inter_y
-							chosen_point = Vector2(x_coord, inter_y)
-					else:
-						if inter_y < best_y:
-							best_y = inter_y
-							chosen_point = Vector2(x_coord, inter_y)
+class VertexMath:
 
-		# -- COLLISIONSHAPE2D: RECT, CÍRCULO, CÁPSULA --
-		elif child is CollisionShape2D:
-			var xf = child.global_transform
-			var shape = child.shape
+	# Devuelve un Array con estos tres puntos (Vector2) en orden:
+	#  [bottom_in_x_highest, bottom_in_x_middle, top_in_x_lowest]
+	#
+	# Parámetros:
+	# - container: Node2D que contiene CollisionPolygon2D o CollisionShape2D.
+	# - x_highest: Coordenada X donde buscamos la intersección con Y mínima.
+	# - x_middle:  Coordenada X donde buscamos la intersección con Y mínima.
+	# - x_lowest:  Coordenada X donde buscamos la intersección con Y máxima.
+	#
+	# Retorna:
+	# - Un Array con 3 Vector2. Si no hay intersección en alguno, retorna Vector2.INF en su lugar.
+	static func get_key_positions_opposed_in_one_pass(container: Node2D, x_at_highest: float, x_middle: float, x_at_lowest: float) -> Array[Vector2]:
+		var top_in_x_lowest := Vector2.INF
+		var bottom_in_x_middle := Vector2.INF
+		var bottom_in_x_highest := Vector2.INF
 
-			if shape is RectangleShape2D:
-				var ext = shape.size * 0.5
-				var rect_points = [
-					Vector2(-ext.x, -ext.y),
-					Vector2(ext.x, -ext.y),
-					Vector2(ext.x,  ext.y),
-					Vector2(-ext.x,  ext.y)
-				]
-				for i in range(rect_points.size()):
-					var gp1 = xf * rect_points[i]
-					var gp2 = xf * rect_points[(i + 1) % rect_points.size()]
-					if ((gp1.x <= x_coord and x_coord <= gp2.x) or (gp2.x <= x_coord and x_coord <= gp1.x)) and gp1.x != gp2.x:
-						var inter_y = gp1.y + (gp2.y - gp1.y) * ((x_coord - gp1.x) / (gp2.x - gp1.x))
-						if want_max_y:
-							if inter_y > best_y:
-								best_y = inter_y
-								chosen_point = Vector2(x_coord, inter_y)
-						else:
-							if inter_y < best_y:
-								best_y = inter_y
-								chosen_point = Vector2(x_coord, inter_y)
+		var best_top_lowest_y := -INF
+		var best_bottom_middle_y := INF
+		var best_bottom_highest_y := INF
 
-			elif shape is CircleShape2D:
-				var r = shape.radius
-				var c = xf.origin
-				if abs(c.x - x_coord) <= r:
-					# Hay dos posibles intersecciones en esa X, la de arriba y la de abajo
-					var dy = sqrt(r * r - pow(x_coord - c.x, 2))
-					var y_up = c.y - dy
-					var y_down = c.y + dy
-					# Según want_max_y, elegimos la más apropiada
-					if want_max_y:
-						if y_down > best_y:
-							best_y = y_down
-							chosen_point = Vector2(x_coord, y_down)
-						if y_up > best_y:
-							best_y = y_up
-							chosen_point = Vector2(x_coord, y_up)
-					else:
-						if y_up < best_y:
-							best_y = y_up
-							chosen_point = Vector2(x_coord, y_up)
-						if y_down < best_y:
-							best_y = y_down
-							chosen_point = Vector2(x_coord, y_down)
+		for child in container.get_children():
 
-			elif shape is CapsuleShape2D:
-				var r = shape.radius
-				var half_h = shape.height * 0.5
-				var c = xf.origin
-				# Para simplificar, chequeamos igual que el círculo, pero el centro "vertical" se desplaza
-				# 1) parte circular inferior
-				var bottom_center = Vector2(c.x, c.y + half_h)
-				if abs(bottom_center.x - x_coord) <= r:
-					var dy = sqrt(r*r - pow(x_coord - bottom_center.x, 2))
-					var y_up_bottom = bottom_center.y - dy
-					var y_down_bottom = bottom_center.y + dy
-					if want_max_y:
-						if y_down_bottom > best_y:
-							best_y = y_down_bottom
-							chosen_point = Vector2(x_coord, y_down_bottom)
-						if y_up_bottom > best_y:
-							best_y = y_up_bottom
-							chosen_point = Vector2(x_coord, y_up_bottom)
-					else:
-						if y_up_bottom < best_y:
-							best_y = y_up_bottom
-							chosen_point = Vector2(x_coord, y_up_bottom)
-						if y_down_bottom < best_y:
-							best_y = y_down_bottom
-							chosen_point = Vector2(x_coord, y_down_bottom)
+			# --------------------------------------------------------------
+			# 1) Polígonos (CollisionPolygon2D o CollisionShape2D con Convex)
+			# --------------------------------------------------------------
+			if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
+				var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
+				for i in range(polygon.size()):
+					var p1 = child.global_transform * polygon[i]
+					var p2 = child.global_transform * polygon[(i + 1) % polygon.size()]
 
-				# 2) parte circular superior
-				var top_center = Vector2(c.x, c.y - half_h)
-				if abs(top_center.x - x_coord) <= r:
-					var dy2 = sqrt(r*r - pow(x_coord - top_center.x, 2))
-					var y_up_top = top_center.y - dy2
-					var y_down_top = top_center.y + dy2
-					if want_max_y:
-						if y_down_top > best_y:
-							best_y = y_down_top
-							chosen_point = Vector2(x_coord, y_down_top)
-						if y_up_top > best_y:
-							best_y = y_up_top
-							chosen_point = Vector2(x_coord, y_up_top)
-					else:
-						if y_up_top < best_y:
-							best_y = y_up_top
-							chosen_point = Vector2(x_coord, y_up_top)
-						if y_down_top < best_y:
-							best_y = y_down_top
-							chosen_point = Vector2(x_coord, y_down_top)
+					if p1.x != p2.x:
+						# ---- x_at_highest, buscamos Y máxima ----
+						if (p1.x <= x_at_highest and x_at_highest <= p2.x) or (p2.x <= x_at_highest and x_at_highest <= p1.x):
+							var y_lowest = p1.y + (p2.y - p1.y) * ((x_at_highest - p1.x) / (p2.x - p1.x))
+							if y_lowest > best_top_lowest_y:
+								best_top_lowest_y = y_lowest
+								top_in_x_lowest = Vector2(x_at_highest, y_lowest)
 
-	# Si no se encontró ninguna intersección, chosen_point sigue en Vector2.INF
-	return chosen_point
-	
+						# ---- x_middle, buscamos Y mínima ----
+						if (p1.x <= x_middle and x_middle <= p2.x) or (p2.x <= x_middle and x_middle <= p1.x):
+							var y_middle = p1.y + (p2.y - p1.y) * ((x_middle - p1.x) / (p2.x - p1.x))
+							if y_middle < best_bottom_middle_y:
+								best_bottom_middle_y = y_middle
+								bottom_in_x_middle = Vector2(x_middle, y_middle)
+
+						# ---- x_at_lowest, buscamos Y mínima ----
+						if (p1.x <= x_at_lowest and x_at_lowest <= p2.x) or (p2.x <= x_at_lowest and x_at_lowest <= p1.x):
+							var y_highest = p1.y + (p2.y - p1.y) * ((x_at_lowest - p1.x) / (p2.x - p1.x))
+							if y_highest < best_bottom_highest_y:
+								best_bottom_highest_y = y_highest
+								bottom_in_x_highest = Vector2(x_at_lowest, y_highest)
+
+			# --------------------------------------------------------------
+			# 2) CollisionShape2D específico: RECT, CÍRCULO, CÁPSULA, etc.
+			# --------------------------------------------------------------
+			elif child is CollisionShape2D:
+				var xf = child.global_transform
+				var shape = child.shape
+
+				# -------------------- RECTÁNGULO --------------------
+				if shape is RectangleShape2D:
+					var ext = shape.size * 0.5
+					var rect_points = [
+						Vector2(-ext.x, -ext.y),
+						Vector2(ext.x, -ext.y),
+						Vector2(ext.x,  ext.y),
+						Vector2(-ext.x,  ext.y)
+					]
+					for i in range(rect_points.size()):
+						var gp1 = xf * rect_points[i]
+						var gp2 = xf * rect_points[(i + 1) % rect_points.size()]
+						if gp1.x != gp2.x:
+
+							# x_at_highest
+							if (gp1.x <= x_at_highest and x_at_highest <= gp2.x) or (gp2.x <= x_at_highest and x_at_highest <= gp1.x):
+								var yL = gp1.y + (gp2.y - gp1.y) * ((x_at_highest - gp1.x) / (gp2.x - gp1.x))
+								if yL > best_top_lowest_y:
+									best_top_lowest_y = yL
+									top_in_x_lowest = Vector2(x_at_highest, yL)
+
+							# x_middle
+							if (gp1.x <= x_middle and x_middle <= gp2.x) or (gp2.x <= x_middle and x_middle <= gp1.x):
+								var yM = gp1.y + (gp2.y - gp1.y) * ((x_middle - gp1.x) / (gp2.x - gp1.x))
+								if yM < best_bottom_middle_y:
+									best_bottom_middle_y = yM
+									bottom_in_x_middle = Vector2(x_middle, yM)
+
+							# x_at_lowest
+							if (gp1.x <= x_at_lowest and x_at_lowest <= gp2.x) or (gp2.x <= x_at_lowest and x_at_lowest <= gp1.x):
+								var yH = gp1.y + (gp2.y - gp1.y) * ((x_at_lowest - gp1.x) / (gp2.x - gp1.x))
+								if yH < best_bottom_highest_y:
+									best_bottom_highest_y = yH
+									bottom_in_x_highest = Vector2(x_at_lowest, yH)
+
+				# -------------------- CÍRCULO --------------------
+				elif shape is CircleShape2D:
+					var r = shape.radius
+					var c = xf.origin
 
 
-## DEPRECATED
-func get_rest_positions_anteior(container: Node2D, x_target: float) -> Array[Vector2]:
-	var best_point:Vector2 = Vector2.INF
-	var max_y:float = -INF
-	
-	var lowest_point:Vector2 = Vector2.INF    # Punto más abajo (Y más grande)
-	var lowest_y:float = -INF
-	var highest_point:Vector2 = Vector2.INF   # Punto más arriba (Y más pequeño)
-	var highest_y:float = INF
+					# x_at_highest (Y máx)
+					var hits_l = check_circle_intersections(c, r, x_at_highest)
+					if hits_l.size() > 0:
+						if hits_l[1] > best_top_lowest_y:
+							best_top_lowest_y = hits_l[1]
+							top_in_x_lowest = Vector2(x_at_highest, hits_l[1])
+						if hits_l[0] > best_top_lowest_y:
+							best_top_lowest_y = hits_l[0]
+							top_in_x_lowest = Vector2(x_at_highest, hits_l[0])
 
-	for child in container.get_children():
-		# POLÍGONOS (CollisionPolygon2D o ConvexPolygonShape2D)
-		if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
-			var polygon:PackedVector2Array = child.polygon if child is CollisionPolygon2D else child.shape.points
+					# x_middle (Y mín)
+					var hits_m = check_circle_intersections(c, r, x_middle)
+					if hits_m.size() > 0:
+						if hits_m[0] < best_bottom_middle_y:
+							best_bottom_middle_y = hits_m[0]
+							bottom_in_x_middle = Vector2(x_middle, hits_m[0])
+						if hits_m[1] < best_bottom_middle_y:
+							best_bottom_middle_y = hits_m[1]
+							bottom_in_x_middle = Vector2(x_middle, hits_m[1])
 
-			for i in range(polygon.size()):
-				var global_p:Vector2 = child.global_transform * polygon[i]
-				# Actualizar lowest/highest global
-				if global_p.y > lowest_y:
-					lowest_y = global_p.y
-					lowest_point = global_p
-				if global_p.y < highest_y:
-					highest_y = global_p.y
-					highest_point = global_p
+					# x_at_lowest (Y mín)
+					var hits_h = check_circle_intersections(c, r, x_at_lowest)
+					if hits_h.size() > 0:
+						if hits_h[0] < best_bottom_highest_y:
+							best_bottom_highest_y = hits_h[0]
+							bottom_in_x_highest = Vector2(x_at_lowest, hits_h[0])
+						if hits_h[1] < best_bottom_highest_y:
+							best_bottom_highest_y = hits_h[1]
+							bottom_in_x_highest = Vector2(x_at_lowest, hits_h[1])
 
-			# Recorremos aristas para encontrar intersección en x_target
-			for i in range(polygon.size()):
-				var p1:Vector2 = child.global_transform * polygon[i]
-				var p2:Vector2 = child.global_transform * polygon[(i + 1) % polygon.size()]
+				# -------------------- CÁPSULA --------------------
+				elif shape is CapsuleShape2D:
+					var r_c = shape.radius
+					var half_h = shape.height * 0.5
+					var c_caps = xf.origin
+					var bottom_center = Vector2(c_caps.x, c_caps.y + half_h)
+					var top_center = Vector2(c_caps.x, c_caps.y - half_h)
 
-				if ((p1.x <= x_target and x_target <= p2.x) or (p2.x <= x_target and x_target <= p1.x)) and p1.x != p2.x:
-					var intersection_y = p1.y + (p2.y - p1.y) * ((x_target - p1.x) / (p2.x - p1.x))
-					if intersection_y > max_y:
-						max_y = intersection_y
-						best_point = Vector2(x_target, intersection_y)
 
-		# RECTÁNGULOS, CÍRCULOS, CÁPSULAS... (similar lógica)
-		elif child is CollisionShape2D:
-			var xf:Transform2D = child.global_transform
-			var shape:Shape2D = child.shape
+					# x_at_highest => busco Y máx
+					var y_lowest_caps = check_capsule_x(x_at_highest, r_c, bottom_center, top_center, true)
+					if y_lowest_caps > best_top_lowest_y:
+						best_top_lowest_y = y_lowest_caps
+						top_in_x_lowest = Vector2(x_at_highest, y_lowest_caps)
 
-			if shape is RectangleShape2D:
-				var ext:Vector2 = shape.size * 0.5
-				var local_points:Array[Vector2] = [
-					Vector2(-ext.x, -ext.y),
-					Vector2(ext.x, -ext.y),
-					Vector2(ext.x,  ext.y),
-					Vector2(-ext.x,  ext.y)
-				]
-				var global_points:Array[Vector2] = []
-				for p in local_points:
-					var g = xf * p
-					global_points.append(g)
-					# Actualizar lowest/highest global
-					if g.y > lowest_y:
-						lowest_y = g.y
-						lowest_point = g
-					if g.y < highest_y:
-						highest_y = g.y
-						highest_point = g
+					# x_middle => busco Y mín
+					var y_middle_caps = check_capsule_x(x_middle, r_c, bottom_center, top_center, false)
+					if y_middle_caps < best_bottom_middle_y:
+						best_bottom_middle_y = y_middle_caps
+						bottom_in_x_middle = Vector2(x_middle, y_middle_caps)
 
-				# Buscar intersecciones con x_target
-				for i in range(global_points.size()):
-					var p1 = global_points[i]
-					var p2 = global_points[(i + 1) % global_points.size()]
-					if ((p1.x <= x_target and x_target <= p2.x) or (p2.x <= x_target and x_target <= p1.x)) and p1.x != p2.x:
-						var intersection_y = p1.y + (p2.y - p1.y) * ((x_target - p1.x) / (p2.x - p1.x))
-						if intersection_y > max_y:
-							max_y = intersection_y
-							best_point = Vector2(x_target, intersection_y)
+					# x_at_lowest => busco Y mín
+					var y_highest_caps = check_capsule_x(x_at_lowest, r_c, bottom_center, top_center, false)
+					if y_highest_caps < best_bottom_highest_y:
+						best_bottom_highest_y = y_highest_caps
+						bottom_in_x_highest = Vector2(x_at_lowest, y_highest_caps)
 
-			elif shape is CircleShape2D:
-				var radius = shape.radius
-				var center = xf.origin
-				# Actualizar lowest/highest global del círculo (punto más bajo y más alto)
-				var bottom = Vector2(center.x, center.y + radius)
-				var top = Vector2(center.x, center.y - radius)
-				if bottom.y > lowest_y:
-					lowest_y = bottom.y
-					lowest_point = bottom
-				if top.y < highest_y:
-					highest_y = top.y
-					highest_point = top
+		return [bottom_in_x_highest, bottom_in_x_middle, top_in_x_lowest]
 
-				# Intersección con x_target
-				if abs(center.x - x_target) <= radius:
-					var dy = sqrt(radius * radius - pow(x_target - center.x, 2))
-					var intersection_y = center.y + dy
-					if intersection_y > max_y:
-						max_y = intersection_y
-						best_point = Vector2(x_target, intersection_y)
+	static func check_circle_intersections(c:Vector2, r:float, x_value: float) -> Array[float]:
+		# Devuelve la intersección más alta y más baja como Array [y_up, y_down], o null si no hay
+		if abs(c.x - x_value) <= r:
+			var dy = sqrt(r * r - pow(x_value - c.x, 2))
+			return [c.y - dy, c.y + dy]
+		return []
 
-			elif shape is CapsuleShape2D:
-				var radius:float = shape.radius
-				var half_h:float = shape.height * 0.5
-				var center:Vector2 = xf.origin
-				# Aproximamos parte superior e inferior de la cápsula (sin considerar rotación completa)
-				var bottom:Vector2 = Vector2(center.x, center.y + half_h + radius)
-				var top:Vector2 = Vector2(center.x, center.y - half_h - radius)
-				if bottom.y > lowest_y:
-					lowest_y = bottom.y
-					lowest_point = bottom
-				if top.y < highest_y:
-					highest_y = top.y
-					highest_point = top
+	static func capsule_circle_check(x_value: float, center: Vector2, r_c:float) -> Array:
+		if abs(center.x - x_value) <= r_c:
+			var dy = sqrt(r_c * r_c - pow(x_value - center.x, 2))
+			return [center.y - dy, center.y + dy]
+		return []
 
-				# Intersección con x_target
-				if abs(center.x - x_target) <= radius:
-					var dy = sqrt(radius * radius - pow(x_target - center.x, 2))
-					var intersection_y = center.y + half_h + dy
-					if intersection_y > max_y:
-						max_y = intersection_y
-						best_point = Vector2(x_target, intersection_y)
-
-	# Si no hubo intersección, best_point seguirá en Vector2.INF
-	# Si no hubo nodos válidos, lowest_point y highest_point pueden ser Vector2.INF
-	return [
-		best_point if best_point != Vector2.INF else Vector2.INF,
-		lowest_point if lowest_point != Vector2.INF else Vector2.INF,
-		highest_point if highest_point != Vector2.INF else Vector2.INF
-	]
-
-## DEPRECATED
-func test_rest(shape_data:ShapeData, cast_origin_global_position:Vector2, excluded_rids:Array[RID] = []):
-	var query = PhysicsShapeQueryParameters2D.new()
-	query.collide_with_areas = collide_with_areas
-	query.collide_with_bodies = collide_with_bodies
-	query.collision_mask = collision_mask
-	query.margin = collision_margin
-	query.shape = shape_data.shape
-	query.transform = shape_data.get_anchor_transform(cast_origin_global_position)
-	query.exclude = excluded_rids #[area_to_place.get_rid()]
-	
-	# primero comprobamos si ya hay un overlap ya que las colisiones existentes se ignoran según la doc
-	var data = space_state.get_rest_info(query)
-	return data
-	#if not data.is_empty():
-		#if return_data == null: return_data = SweepingResult.new()
-		#return_data.contact_point = data.point
-		#return_data.shape_position = query.transform.origin
-		#return_data.motion_pct = 0
-		##prints("Existing overlap at start")
-		#return return_data
-	
+	static func check_capsule_x(x_value: float, r_c:float, bottom_center:Vector2, top_center:Vector2, is_for_max: bool) -> float:
+		# Retorna la mejor intersección (máx o mín) en base a las dos "cúpulas"
+		var b_hits = capsule_circle_check(x_value, bottom_center, r_c)
+		var t_hits = capsule_circle_check(x_value, top_center, r_c)
+		var candidates = []
+		if b_hits:
+			candidates.append(b_hits[0])
+			candidates.append(b_hits[1])
+		if t_hits:
+			candidates.append(t_hits[0])
+			candidates.append(t_hits[1])
+		if candidates.size() == 0:
+			return -INF if is_for_max else INF
+		return max(candidates) if is_for_max else min(candidates)

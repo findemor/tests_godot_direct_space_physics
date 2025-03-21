@@ -44,7 +44,7 @@ func transfer(origin_container:Node2D, reubication_position:Vector2 = Vector2.IN
 	prints("collision at start",sweeper.intersects(target_container.global_position)  ,"collision at end", sweeper.intersects(sr), "FPS", Engine.get_frames_per_second())
 	
 	
-	var p = sweeper.get_rest_positions(origin_container, origin_container.global_position.x)
+	var p = sweeper.get_key_positions(origin_container, origin_container.global_position.x)
 	$CenterMarker.global_position = p[0]
 	$BotMarkerBot.global_position = p[1]
 	$TopMarker.global_position = p[2]
