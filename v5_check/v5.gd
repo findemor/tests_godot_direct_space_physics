@@ -4,22 +4,45 @@ extends Node2D
 @export var origin_area_2d:Node2D
 @onready var target_container: Node2D = $TargetContainer
 @export var sweeper_speed:float = 100
-@export var cast_motion:Vector2 = Vector2.DOWN * 500
 
 @export var sweeper:Sweeper
 @onready var character_body_2d: CharacterBody2D = $CharacterBody2D
 
+@onready var center_ray_cast:RayCast2D = $CharacterBody2D/CenterRayCast2D
+@onready var right_ray_cast:RayCast2D = $CharacterBody2D/RightRayCast2D
+
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
-		sweeper.transfer_as_nodes(target_container, true)
+		#sweeper.transfer_as_nodes(target_container, true)
+		update_sweeper_data(origin_area_2d)
 		#transfer(origin_area_2d, sweeper.global_position)
 	if event.is_action_pressed("ui_up"):
 		origin_area_2d.rotation_degrees += 10
+		update_sweeper_data(origin_area_2d)
 		
 func _physics_process(delta: float) -> void:
+	
+	var center_collision:Vector2 = center_ray_cast.global_position + center_ray_cast.target_position
+	if center_ray_cast.is_colliding():
+		center_collision = center_ray_cast.get_collision_point() 
+	
+	var right_collision:Vector2 = right_ray_cast.global_position + right_ray_cast.target_position
+	if right_ray_cast.is_colliding():
+		right_collision = right_ray_cast.get_collision_point() 
+		
+	## la posición más baja centrado en el mismo x
+	var lower_collision:Vector2 = center_collision if center_collision.y >= right_collision.y else Vector2(center_collision.x, right_collision.y)
+	
+	$CenterCollision.global_position = center_collision
+	$RightCollision.global_position = right_collision
+	
+	
+	## ya sabemos los puntos de colision
+	
+	
 	if Engine.get_physics_frames() % 30 == 0:
-		transfer(origin_area_2d, character_body_2d.global_position)
+		sweep_and_reubicate(origin_area_2d, center_ray_cast.global_position)
 		
 	if Input.is_action_pressed("ui_left"):
 		character_body_2d.position += Vector2.LEFT * sweeper_speed * delta
@@ -27,30 +50,42 @@ func _physics_process(delta: float) -> void:
 		character_body_2d.position += Vector2.RIGHT * sweeper_speed * delta
 
 
+func update_sweeper_data(origin_container:Node2D):
+	## obtenemos todas las shapes que contiene el nodo de origen
+	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_all_shapes(origin_container)
+	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
 	
-	
+	sweeper.calculate_key_positions(origin_container)
+	$CenterMarker.global_position = sweeper.key_positions.center_point_lowest
+	$BotMarkerBot.global_position = sweeper.key_positions.lowest_point
+	$TopMarkerTop.global_position = sweeper.key_positions.highest_point
+	$BotMarkerTop.global_position = sweeper.key_positions.lowest_point_antipodal
+	$TopMarkerBot.global_position = sweeper.key_positions.highest_point_antipodal
+
 
 ## Transfiere los shapes de un nodo a otro, creando CollisionShapes2D como nodos para conenerlos
 ## origin_container es el nodo del que se obtendrán los shapes de referencia, no se modifica
-## reubication_position ignorará la posición del transform de origen y usará esta en su lugar. Vector2.INF usará la de origen
-func transfer(origin_container:Node2D, reubication_position:Vector2 = Vector2.INF):
+## sweep_origin es la posicion de inicio del sweep, en coodenadas globales
+func sweep_and_reubicate(origin_container:Node2D, sweep_origin:Vector2):
 	
-	## obtenemos todas las shapes que contiene el nodo de origen
-	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_all_shapes(origin_container, reubication_position)
-
-	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
-	var sr:Vector2 = sweeper.sweep(character_body_2d.global_position, cast_motion, [character_body_2d.get_rid()])
-	origin_container.global_position = sr
+	var sr:Vector2 = sweeper.sweep(sweep_origin, center_ray_cast.target_position, [character_body_2d.get_rid()])
+	
+	if sr == Vector2.INF:
+		origin_container.global_position = sweep_origin
+	else:
+		origin_container.global_position = sr
 	prints("collision at start",sweeper.intersects(target_container.global_position)  ,"collision at end", sweeper.intersects(sr), "FPS", Engine.get_frames_per_second())
+	## solo para refrescar los marcadores visualmente, esto solo se hace una vez al inicio
+	
+	sweeper.calculate_key_positions(origin_container)
+	$CenterMarker.global_position = sweeper.key_positions.center_point_lowest
+	$BotMarkerBot.global_position = sweeper.key_positions.lowest_point
+	$TopMarkerTop.global_position = sweeper.key_positions.highest_point
+	$BotMarkerTop.global_position = sweeper.key_positions.lowest_point_antipodal
+	$TopMarkerBot.global_position = sweeper.key_positions.highest_point_antipodal
 	
 	
-	var p:Sweeper.StructureKeyPositions = sweeper.get_key_positions(origin_container, origin_container.global_position.x)
-	$CenterMarker.global_position = p.target_point_lowest
-	
-	$BotMarkerBot.global_position = p.lowest_point
-	$TopMarkerTop.global_position = p.highest_point
-	$BotMarkerTop.global_position = p.lowest_point_antipodal
-	$TopMarkerBot.global_position = p.highest_point_antipodal
+
 	
 #
 	#

@@ -19,7 +19,6 @@ points = PackedVector2Array(-29, -26, -67, -2, -28, 28)
 [node name="Node2D" type="Node2D" node_paths=PackedStringArray("origin_area_2d", "sweeper")]
 script = ExtResource("1_o1spk")
 origin_area_2d = NodePath("OriginArea2D")
-cast_motion = Vector2(0, -300)
 sweeper = NodePath("Sweeper")
 
 [node name="Floor" type="RigidBody2D" parent="."]
@@ -47,7 +46,7 @@ polygon = PackedVector2Array(-1, -46, -5, -2, 287, -4, 284, 57, -71, 45, -64, -4
 polygon = PackedVector2Array(-1, -46, -5, -2, 287, -4, 282, 58, -71, 45, -64, -43)
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="."]
-position = Vector2(655, 397)
+position = Vector2(592, 47)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
 shape = SubResource("CapsuleShape2D_ldups")
@@ -56,6 +55,15 @@ shape = SubResource("CapsuleShape2D_ldups")
 points = PackedVector2Array(0, -600, 0, 600)
 width = 1.0
 default_color = Color(1, 0.160784, 1, 0.454902)
+
+[node name="CenterRayCast2D" type="RayCast2D" parent="CharacterBody2D"]
+target_position = Vector2(0, 1000)
+collision_mask = 2
+
+[node name="RightRayCast2D" type="RayCast2D" parent="CharacterBody2D"]
+position = Vector2(25, 0)
+target_position = Vector2(0, 1000)
+collision_mask = 2
 
 [node name="Sweeper" type="Node" parent="."]
 script = ExtResource("2_vpo6d")
@@ -117,3 +125,13 @@ polygon = PackedVector2Array(-10, 7, 0, 0, -10, -7)
 [node name="BotCollision" type="Polygon2D" parent="."]
 color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-10, 7, 0, 0, -10, -7)
+
+[node name="CenterCollision" type="Polygon2D" parent="."]
+position = Vector2(47, 21)
+color = Color(1, 0.937255, 0, 1)
+polygon = PackedVector2Array(-7, 7, 5, 7, 5, 3, -3, 3, -3, -4, 5, -4, 5, -7, -7, -7)
+
+[node name="RightCollision" type="Polygon2D" parent="."]
+position = Vector2(68, 21)
+color = Color(1, 0.937255, 0, 1)
+polygon = PackedVector2Array(-7, 7, -3, 7, -3, 3, 0, 7, 5, 7, 0, 0, 5, 0, 5, -7, -7, -7)
