@@ -44,21 +44,24 @@ func transfer(origin_container:Node2D, reubication_position:Vector2 = Vector2.IN
 	prints("collision at start",sweeper.intersects(target_container.global_position)  ,"collision at end", sweeper.intersects(sr), "FPS", Engine.get_frames_per_second())
 	
 	
-	var p = sweeper.get_key_positions(origin_container, origin_container.global_position.x)
-	$CenterMarker.global_position = p[0]
-	$BotMarkerBot.global_position = p[1]
-	$TopMarker.global_position = p[2]
-	$BotMarker.global_position = p[3]
-	$TopMarkerBot.global_position = p[4]
+	var p:Sweeper.StructureKeyPositions = sweeper.get_key_positions(origin_container, origin_container.global_position.x)
+	$CenterMarker.global_position = p.target_point_lowest
 	
-	var cast_length:float = 1000
+	$BotMarkerBot.global_position = p.lowest_point
+	$TopMarkerTop.global_position = p.highest_point
+	$BotMarkerTop.global_position = p.lowest_point_antipodal
+	$TopMarkerBot.global_position = p.highest_point_antipodal
+	
+#
 	#
-	#var casts:Array[Vector2] = [Vector2.DOWN * cast_length, Vector2.DOWN * cast_length, Vector2.UP * cast_length]
-	#var c = sweeper.get_ray_intersections(p, casts)
-	#$CenterCollision.global_position = c[0]
-	#$BotCollision.global_position = c[1]
-	#$TopCollision.global_position = c[2]
-
+	#var cast_length:float = 1000
+	#
+	#var casts_points:Array[Vector2] = [p[3], p[4]] # desde el opuesto a la posicón más baja, hacia abajo, y desde el opuesto de la posición más alta, hacia arriba
+	#var casts_directions:Array[Vector2] = [Vector2.DOWN * cast_length, Vector2.UP * cast_length]
+	#var c = sweeper.get_ray_intersections(casts_points, casts_directions)
+	#$BotCollision.global_position = c[0]
+	#$TopCollision.global_position = c[1]
+	
 	#
 	#var data = sweeper.test_rest(all_shapes[0], character_body_2d.global_position, [character_body_2d.get_rid()])
 	#

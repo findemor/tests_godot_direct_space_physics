@@ -252,47 +252,64 @@ class ScanQuery:
 ## 
 ## bottom_pos es la posicion de inicio del escaneo (normalmente la colisión con el suelo, desde donde se tratara de buscar un emplazamiento válido)
 ## top_pos es la posición más alta en la que se podría emplazar la estructura
-func test_scan(bottom_pos:Vector2, top_pos:Vector2):
-	## bottom_collision
-	## bottom_boundary
-	## top_bounday
+func scan_inside_hole(bottom_pos:Vector2, top_pos:Vector2):
 	pass
+	## conociendo la posición RELATIVA, respecto al centro, de los puntos clave (cada vez que se rota)
+	## calculamos la diferencia de posición del centro respecto a la que tendria con el punto clave central en S (punto de soporte), que es cc (center_collision.x,lower_collision.y) del triple raycast
+	## si en esa ubicación highest point está ocupado, es que no entra, podemos parar, no hay posibilidad de spawn.
+	## en otro caso, elevamos la pieza:
+	##    obtenemos todos los RID de las colisiones actuales en ese lugar
+	##    cast_motion hacia arriba (distancia hasta que S == cc, o lo que es lo mismo, diferencia de longitud entre raycasts), excluyendo las colisiones actuales
+	##    reubicando la estructura en ese punto de máximo desplazamiento, cast_motion hacia abajo, sin excluir colisiones. (lo dejamos caer desde ese "techo"). Activamos deteccion de colision en el inicio.
+	##      si se pudo desplazar (o no hay colisión), ese es el punto de spawn. En otro caso asumimos que no habia espacio libre en el area porque sigue habiendo obstaculos.
 	
-	
-	## buscar bottom_collision_rest_point (el punto de colision con la estructura en bottom_collision.x).
-	##   posicionar desplazando la estructura de manera que bottom_collision_rest_point.y == bottom_collision.y
-	##   el centro de la estructura en ese punto es A, origen no optimizado de bottom boundary
-	##     se puede optimizar calculando el punto sin colisión del vertice más bajo de la estructura, que lo podría elevar más
-	##   el punto B, destino no optimizado de top_boundary, se indica por parametro (es la posición de la estructura en el punto central, si es más alto)
-	##     se puede optimizar calculando el punto de colisión del vertice más alto, siempre que sea una posición mas baja que la indicada
-	
-	## una vez que tenemos free boundary, escaneamos verticalmente el intersect shape entre ambos puntos
-	## de abajo a arriba hasta que encueentra un lugar en el que emplazarse
-	## si un area tiene colisión, se descarta el paso.
 
-## dado una serie de puntos y de longitudes direccionales (casts), devuelve las colisiones obteneidas en cada uno de ellos
-func get_ray_intersections(points:Array[Vector2], casts:Array[Vector2]) -> Array[Vector2]:
-	var query:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
-	query.collide_with_areas = collide_with_areas
-	query.collide_with_bodies = collide_with_bodies
-	query.collision_mask = collision_mask
-	#query.hit_from_inside
+
+
+
+	#
+#func get_empty_space_for_point(point:Vector2, first_cast_length:float, search_direction:Vector2, search_step_cast_length:float, search_max_length:float) -> Array[Vector2]:
+	#
+	##var result:Array[Vector2] = [-Vector2.INF, Vector2.INF] # limite superior, limite inferior
+	#var search_direction_bound:Vector2 = Vector2.INF
+	#var support_direction_bound:Vector2 = Vector2.INF
+	#
+	#var query:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
+	#query.collide_with_areas = collide_with_areas
+	#query.collide_with_bodies = collide_with_bodies
+	#query.collision_mask = collision_mask
+	#
+	#query.from = point
+	#query.to = point + -1 * search_direction * first_cast_length # intentamos apoyarlo en la dirección contraria de la busqeuda (es decir, lo apoyamos en el suelo por debajo cuando estamos buscando hacia arriba)
+	#var data:Dictionary = space_state.intersect_ray(query)
+	#if not data.is_empty(): support_direction_bound = data.position ## hemos encontrado una posición de apoyo por debajo, nos vale
+	#
+	### si no hemos encontrado una posiciónd e apoyo, vamos moviendonos a pasos hacia arriba hast encontrarla
+	#var search_origin:Vector2 = point + search_direction * search_step_cast_length
+	#while support_direction_bound == Vector2.INF and search_origin.distance_to(point) <= search_max_length:
+		#query.from = search_origin
+		#query.to = point
+		#data = space_state.intersect_ray(query)
+		#if not data.is_empty(): support_direction_bound = data.position ## hemos encontrado una posición de apoyo por debajo, nos vale
+	#
+		### desplazamos el cursor de busqueda en la direccion especificada
+		#search_origin += search_direction * search_step_cast_length
+	#
+	#if support_direction_bound != Vector2.INF:
+		### si hemos encontrado una posicion de soporte, buscamos también la opuesta
+		#query.from = support_direction_bound
+		#query.to = support_direction_bound * -search_direction * search_max_length
 	
-	var collisions:Array[Vector2] = []
-	
-	for i in range(points.size()):
-		query.from = points[i]
-		query.to = points[i] + casts[i]
-		var data:Dictionary = space_state.intersect_ray(query)
-		if data.is_empty():
-			## se devuelve el máximo alcance detectado por el raycast sin colision
-			collisions.append(query.to)
-		else:
-			collisions.append(data.position)
-	
-	return collisions
-	
-	
+		
+
+## posiciones clave de la estructura
+class StructureKeyPositions:
+	var target_point_lowest:Vector2 #posición de punto más bajo de colisión de la estructura en x = x_target. Si no hay colisión, devuelve Vector2.INF
+	var target_point_highest:Vector2 #poisión del punto más alto de colision de la estructrua en x = x_target. Si no hay colision devuelve Vector2.INF
+	var lowest_point:Vector2 # posición del punto más bajo de la estructura formada por las formas. Es decir, aquel punto en el que la coordenada Y es mayor.
+	var highest_point:Vector2 # posición del punto más alto de la estructura formada por las formas. Es decir, aquel punto en el que la coordenada Y es menor.
+	var lowest_point_antipodal:Vector2 #Punto más alto (Y min.) en la misma X que el más bajo
+	var highest_point_antipodal:Vector2 #, Punto más bajo (Y max.) en la misma X que el más alto
 
 
 ## Obtiene los puntos de apoyo más relevantes del nodo, analizando las formas que contiene
@@ -304,7 +321,7 @@ func get_ray_intersections(points:Array[Vector2], casts:Array[Vector2]) -> Array
 ## [2]: highest_point, posición del punto más alto de la estructura formada por las formas. Es decir, aquel punto en el que la coordenada Y es menor.
 ## [3]: top_in_lowest_x, Punto más alto (Y min.) en la misma X que el más bajo
 ## [4]: bottom_in_highest_x, Punto más bajo (Y max.) en la misma X que el más alto
-func get_key_positions(container: Node2D, x_target: float) -> Array[Vector2]:
+func get_key_positions(container: Node2D, x_target: float) -> StructureKeyPositions:
 	# -- PRIMER PASO: hallamos lowest_point (Y mayor) y highest_point (Y menor) en todos los nodos --
 	var lowest_point = Vector2.INF
 	var lowest_y = -INF
@@ -375,13 +392,16 @@ func get_key_positions(container: Node2D, x_target: float) -> Array[Vector2]:
 	
 	var key_positions_opposed:Array[Vector2] = VertexMath.get_key_positions_opposed_in_one_pass(container, highest_point.x, x_target, lowest_point.x)
 
-	return [
-		key_positions_opposed[1],        # 0) Intersección en x_target (Y máx.)
-		lowest_point,      # 1) Punto global más abajo (Y más grande)
-		highest_point,     # 2) Punto global más arriba (Y más pequeño)
-		key_positions_opposed[2],   # 3) Punto más alto (Y min.) en la misma X que el más bajo
-		key_positions_opposed[0] # 4) Punto más bajo (Y max.) en la misma X que el más alto
-	]
+
+	var key_positions:StructureKeyPositions = StructureKeyPositions.new()
+	key_positions.target_point_lowest = key_positions_opposed[2]
+	key_positions.target_point_highest = key_positions_opposed[1]
+	key_positions.lowest_point = lowest_point
+	key_positions.highest_point = highest_point
+	key_positions.lowest_point_antipodal = key_positions_opposed[0]
+	key_positions.highest_point_antipodal = key_positions_opposed[3]
+	
+	return key_positions
 
 
 
@@ -402,10 +422,12 @@ class VertexMath:
 		var top_in_x_lowest := Vector2.INF
 		var bottom_in_x_middle := Vector2.INF
 		var bottom_in_x_highest := Vector2.INF
+		var top_in_x_middle := Vector2.INF
 
 		var best_top_lowest_y := -INF
 		var best_bottom_middle_y := INF
 		var best_bottom_highest_y := INF
+		var best_top_middle_y := -INF
 
 		for child in container.get_children():
 
@@ -432,6 +454,13 @@ class VertexMath:
 							if y_middle < best_bottom_middle_y:
 								best_bottom_middle_y = y_middle
 								bottom_in_x_middle = Vector2(x_middle, y_middle)
+						
+						# ---- x_middle, buscamos Y máxima ----
+						if (p1.x <= x_middle and x_middle <= p2.x) or (p2.x <= x_middle and x_middle <= p1.x):
+							var y_middle = p1.y + (p2.y - p1.y) * ((x_middle - p1.x) / (p2.x - p1.x))
+							if y_middle > best_top_middle_y:
+								best_top_middle_y = y_middle
+								top_in_x_middle = Vector2(x_middle, y_middle)
 
 						# ---- x_at_lowest, buscamos Y mínima ----
 						if (p1.x <= x_at_lowest and x_at_lowest <= p2.x) or (p2.x <= x_at_lowest and x_at_lowest <= p1.x):
@@ -474,6 +503,13 @@ class VertexMath:
 								if yM < best_bottom_middle_y:
 									best_bottom_middle_y = yM
 									bottom_in_x_middle = Vector2(x_middle, yM)
+									
+							# x_middle
+							if (gp1.x <= x_middle and x_middle <= gp2.x) or (gp2.x <= x_middle and x_middle <= gp1.x):
+								var yM = gp1.y + (gp2.y - gp1.y) * ((x_middle - gp1.x) / (gp2.x - gp1.x))
+								if yM > best_bottom_middle_y:
+									best_top_middle_y = yM
+									top_in_x_middle = Vector2(x_middle, yM)
 
 							# x_at_lowest
 							if (gp1.x <= x_at_lowest and x_at_lowest <= gp2.x) or (gp2.x <= x_at_lowest and x_at_lowest <= gp1.x):
@@ -507,6 +543,15 @@ class VertexMath:
 						if hits_m[1] < best_bottom_middle_y:
 							best_bottom_middle_y = hits_m[1]
 							bottom_in_x_middle = Vector2(x_middle, hits_m[1])
+						
+						if hits_m[0] > best_top_middle_y:
+							best_top_middle_y = hits_m[0]
+							top_in_x_middle = Vector2(x_middle, hits_m[0])
+						if hits_m[1] > best_top_middle_y:
+							best_top_middle_y = hits_m[1]
+							top_in_x_middle = Vector2(x_middle, hits_m[1])
+							
+					
 
 					# x_at_lowest (Y mín)
 					var hits_h = check_circle_intersections(c, r, x_at_lowest)
@@ -538,6 +583,11 @@ class VertexMath:
 					if y_middle_caps < best_bottom_middle_y:
 						best_bottom_middle_y = y_middle_caps
 						bottom_in_x_middle = Vector2(x_middle, y_middle_caps)
+						
+					var y_middle_caps_bot = check_capsule_x(x_middle, r_c, bottom_center, top_center, true)
+					if y_middle_caps_bot > best_top_middle_y:
+						best_top_middle_y = y_middle_caps_bot
+						top_in_x_middle = Vector2(x_middle, y_middle_caps_bot)
 
 					# x_at_lowest => busco Y mín
 					var y_highest_caps = check_capsule_x(x_at_lowest, r_c, bottom_center, top_center, false)
@@ -545,7 +595,7 @@ class VertexMath:
 						best_bottom_highest_y = y_highest_caps
 						bottom_in_x_highest = Vector2(x_at_lowest, y_highest_caps)
 
-		return [bottom_in_x_highest, bottom_in_x_middle, top_in_x_lowest]
+		return [bottom_in_x_highest, bottom_in_x_middle, top_in_x_middle, top_in_x_lowest]
 
 	static func check_circle_intersections(c:Vector2, r:float, x_value: float) -> Array[float]:
 		# Devuelve la intersección más alta y más baja como Array [y_up, y_down], o null si no hay

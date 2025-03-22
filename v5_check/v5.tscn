@@ -92,12 +92,8 @@ shape = SubResource("RectangleShape2D_wk7hv")
 [node name="CenterMarker" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="TopMarker" type="Polygon2D" parent="."]
+[node name="TopMarkerTop" type="Polygon2D" parent="."]
 color = Color(0, 0.760266, 0.222547, 1)
-polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
-
-[node name="BotMarker" type="Polygon2D" parent="."]
-color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
 [node name="TopMarkerBot" type="Polygon2D" parent="."]
@@ -105,13 +101,14 @@ rotation = 3.14159
 color = Color(0, 0.760266, 0.222547, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
+[node name="BotMarkerTop" type="Polygon2D" parent="."]
+color = Color(1, 0.227451, 0, 1)
+polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
+
 [node name="BotMarkerBot" type="Polygon2D" parent="."]
 rotation = 3.14159
 color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
-
-[node name="CenterCollision" type="Polygon2D" parent="."]
-polygon = PackedVector2Array(-10, 7, 0, 0, -10, -7)
 
 [node name="TopCollision" type="Polygon2D" parent="."]
 color = Color(0, 0.760266, 0.222547, 1)
