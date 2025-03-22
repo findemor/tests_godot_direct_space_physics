@@ -104,25 +104,25 @@ func intersects(anchor_global_position:Vector2, excluded_rids:Array[RID] = [], g
 	for shape in shapes:
 		var shape_colliding_rids:Array[RID] = _shape_intersects(shape, anchor_global_position, excluded_rids)
 		rids.append_array(shape_colliding_rids)
-		if not get_all_collisions: break
+		if not get_all_collisions and not rids.is_empty(): break ## si basta con detectar alguna condicion para parar y ya tenemos alguna
 	return rids
-	
-## crea dentro del target container nuevos nodos collisionshapes2D
-## aplicando las transformaciones y el punto de anclaje que se hayan calculado
-## se utiliza básicamente para depurar visualmente estos calculos internos
-func transfer_as_nodes(target_container:Node2D, clear_target_container_children:bool = true):
-	if clear_target_container_children:
-		## vaciamos el contenedor
-		for c in target_container.get_children():
-			c.queue_free()
-			
-	## obtenemos todas las shapes que contiene el nodo de origen
-	for sr in shapes:
-		var new_polygon:CollisionShape2D = CollisionShape2D.new()
-		new_polygon.shape = sr.shape
-		new_polygon.global_transform = sr.get_anchor_transform(target_container.global_position)
-		
-		target_container.add_child(new_polygon)
+	#
+### crea dentro del target container nuevos nodos collisionshapes2D
+### aplicando las transformaciones y el punto de anclaje que se hayan calculado
+### se utiliza básicamente para depurar visualmente estos calculos internos
+#func transfer_as_nodes(target_container:Node2D, clear_target_container_children:bool = true):
+	#if clear_target_container_children:
+		### vaciamos el contenedor
+		#for c in target_container.get_children():
+			#c.queue_free()
+			#
+	### obtenemos todas las shapes que contiene el nodo de origen
+	#for sr in shapes:
+		#var new_polygon:CollisionShape2D = CollisionShape2D.new()
+		#new_polygon.shape = sr.shape
+		#new_polygon.global_transform = sr.get_anchor_transform(target_container.global_position)
+		#
+		#target_container.add_child(new_polygon)
 
 ## prepara la query y devuelve la información de contacto de una forma si avanzase cast_length
 func _sweep(shape_data:ShapeData, cast_length:Vector2,\
@@ -249,34 +249,41 @@ class ShapeData:
 
 
 
-## 
+## Calcula una posición en la que podría ubicarse una piez en un agujero, segun una posición de soporte en ese agujero. Deben haberse calculado key_positions previamente
 ## bottom_support_limit_pos: posicion de soporte de la estructura en la posicion más baja
-## top_support_limit_pos: posicion de soporte de la estructura más alta permitida durante la búsqueda
+## center_min_y_allowed: posicion mas alta en la que podría recolocarse la estructura
 ## key_positions: posiciones clave de la estructura (coordenadas globales)
 ## Devuelve una posición valida de emplazamiento dentro del hueco, intentando que sea lo mas baja posible sin colision. Si no se encontró, devuelve Vector2.INF
-func scan_inside_hole(bottom_support_limit_pos:Vector2, top_support_limit_pos:Vector2, key_positions:StructureKeyPositions) -> Vector2:
+func scan_inside_hole(bottom_support_limit_pos:Vector2, center_min_y_allowed:float, excluded_rids:Array[RID] = []) -> Vector2:
 
+	if key_positions == null: return Vector2.INF
+		
 	## calculamos la ubicación del centro de la estructura en ese punto
 	var structure_center_offset:Vector2 = key_positions.center - key_positions.center_point_lowest
 	var bottom_translated_structure_center:Vector2 = bottom_support_limit_pos + structure_center_offset
-	var top_translated_structure_center:Vector2 = top_support_limit_pos + structure_center_offset
+	#var top_translated_structure_center:Vector2 = top_support_limit_pos + structure_center_offset
+	var top_translated_center_boundary:Vector2 = Vector2(bottom_translated_structure_center.x, center_min_y_allowed)
 	
 	## elevamos la pieza:
 	##    obtenemos todos los RID de las colisiones actuales en ese lugar
-	var initial_collision_rids:Array[RID] = intersects(bottom_translated_structure_center, [], true)
+	var initial_collision_rids:Array[RID] = intersects(bottom_translated_structure_center, excluded_rids, true)
+	initial_collision_rids.append_array(excluded_rids)
 	
 	##    cast_motion hacia arriba (distancia hasta que S == cc, o lo que es lo mismo, diferencia de longitud entre raycasts), excluyendo las colisiones actuales
-	var motion_up:Vector2 = sweep(bottom_translated_structure_center, top_translated_structure_center - bottom_support_limit_pos, initial_collision_rids)
+	#var motion_up:Vector2 = sweep(bottom_translated_structure_center, top_translated_structure_center - bottom_support_limit_pos, initial_collision_rids)
+	var ceiling_position:Vector2 = sweep(bottom_translated_structure_center, top_translated_center_boundary - bottom_translated_structure_center, initial_collision_rids)
+	ceiling_position += Vector2.DOWN * 0.01 ## esto es un fix, lo bajamos un poco para que no se produzcan colisiones fantasmas con el techo detectado
 	
 	##    reubicando la estructura en ese punto de máximo desplazamiento, cast_motion hacia abajo, sin excluir colisiones. (lo dejamos caer desde ese "techo"). Activamos deteccion de colision en el inicio.
-	var ceiling_position:Vector2 = bottom_translated_structure_center + motion_up
-	var motion_down:Vector2 = sweep(ceiling_position, bottom_translated_structure_center - ceiling_position)
+	#var ceiling_position:Vector2 = bottom_translated_structure_center + motion_up
+	#var motion_down:Vector2 = sweep(ceiling_position, bottom_translated_structure_center - ceiling_position)
+	var floor_position:Vector2 = sweep(ceiling_position, bottom_translated_structure_center - ceiling_position, excluded_rids)
 	## quiza podriamos parar aqui segun la respuesta de sweep. Pero hay casos en los que si inicia en una posición de solapamiento podría no detectarlo y dar un falso negativo
-
-	## vemos las colisiones en la nueva posición
 	
-	var floor_position:Vector2 = ceiling_position + motion_down
-	var ending_collision_rids:Array[RID] = intersects(floor_position)
+	## vemos las colisiones en la nueva posición
+
+	#var floor_position:Vector2 = ceiling_position + motion_down
+	var ending_collision_rids:Array[RID] = intersects(floor_position, excluded_rids)
 	
 	## si no hay colisión final 
 	if ending_collision_rids.is_empty(): 
@@ -416,6 +423,13 @@ func get_key_positions(container: Node2D) -> StructureKeyPositions:
 	key_positions.highest_point = highest_point
 	key_positions.highest_point_antipodal = key_positions_opposed[0] #bottom_in_x_highest
 	key_positions.lowest_point_antipodal = key_positions_opposed[3] #top_in_x_lowest
+	
+	## cuando no hay colision central, porque las formas estan dispersas, devolvemos una simulacion alrededor del punto central, para evitar errores posteriores
+	if key_positions.center_point_highest == Vector2.INF:
+		key_positions.center_point_highest = key_positions.center + Vector2.UP * 0.001
+	if key_positions.center_point_lowest == Vector2.INF:
+		key_positions.center_point_lowest = key_positions.center + Vector2.DOWN * 0.001
+	
 	
 	return key_positions
 

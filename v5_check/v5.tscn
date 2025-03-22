@@ -28,10 +28,10 @@ collision_mask = 2
 gravity_scale = 0.0
 
 [node name="Polygon2D" type="Polygon2D" parent="Floor"]
-polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 52, 40, -71, 45, -64, -43)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor"]
-polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 68, 51, -71, 45, -64, -43)
+polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 52, 41, -71, 45, -64, -43)
 
 [node name="Floor2" type="RigidBody2D" parent="."]
 position = Vector2(551, 401)
@@ -40,10 +40,22 @@ collision_mask = 2
 gravity_scale = 0.0
 
 [node name="Polygon2D" type="Polygon2D" parent="Floor2"]
-polygon = PackedVector2Array(-1, -46, -5, -2, 287, -4, 284, 57, -71, 45, -64, -43)
+polygon = PackedVector2Array(-1, -46, -5, -2, 201, -3, 231, -53, 287, -4, 284, 57, -71, 45, -64, -43)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor2"]
-polygon = PackedVector2Array(-1, -46, -5, -2, 287, -4, 282, 58, -71, 45, -64, -43)
+polygon = PackedVector2Array(-1, -46, -5, -2, 199.205, -3.39865, 229, -54, 287, -4, 282, 58, -71, 45, -64, -43)
+
+[node name="Floor3" type="RigidBody2D" parent="."]
+position = Vector2(776, 52)
+collision_layer = 2
+collision_mask = 2
+gravity_scale = 0.0
+
+[node name="Polygon2D" type="Polygon2D" parent="Floor3"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 201, -3, 231, -53, 287, -4, 284, 57, -71, 45, -64, -43)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor3"]
+polygon = PackedVector2Array(-1, -46, -5, -2, 199.205, -3.39865, 229, -54, 287, -4, 282, 58, -71, 45, -64, -43)
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="."]
 position = Vector2(592, 47)
@@ -57,12 +69,12 @@ width = 1.0
 default_color = Color(1, 0.160784, 1, 0.454902)
 
 [node name="CenterRayCast2D" type="RayCast2D" parent="CharacterBody2D"]
-target_position = Vector2(0, 1000)
+target_position = Vector2(0, 500)
 collision_mask = 2
 
 [node name="RightRayCast2D" type="RayCast2D" parent="CharacterBody2D"]
 position = Vector2(25, 0)
-target_position = Vector2(0, 1000)
+target_position = Vector2(0, 500)
 collision_mask = 2
 
 [node name="Sweeper" type="Node" parent="."]
@@ -87,8 +99,6 @@ shape = SubResource("ConvexPolygonShape2D_2c4wj")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="OriginArea2D"]
 position = Vector2(-3, -61)
 polygon = PackedVector2Array(-29, -26, -67, -2, -28, 28)
-
-[node name="TargetContainer" type="Node2D" parent="."]
 
 [node name="OriginArea2D2" type="Area2D" parent="."]
 position = Vector2(165, 268)
