@@ -394,12 +394,12 @@ func get_key_positions(container: Node2D, x_target: float) -> StructureKeyPositi
 
 
 	var key_positions:StructureKeyPositions = StructureKeyPositions.new()
-	key_positions.target_point_lowest = key_positions_opposed[2]
-	key_positions.target_point_highest = key_positions_opposed[1]
+	key_positions.target_point_highest = key_positions_opposed[2] #top_in_x_middle
+	key_positions.target_point_lowest = key_positions_opposed[1] #bottom_in_x_middle
 	key_positions.lowest_point = lowest_point
 	key_positions.highest_point = highest_point
-	key_positions.lowest_point_antipodal = key_positions_opposed[0]
-	key_positions.highest_point_antipodal = key_positions_opposed[3]
+	key_positions.highest_point_antipodal = key_positions_opposed[0] #bottom_in_x_highest
+	key_positions.lowest_point_antipodal = key_positions_opposed[3] #top_in_x_lowest
 	
 	return key_positions
 
@@ -407,9 +407,18 @@ func get_key_positions(container: Node2D, x_target: float) -> StructureKeyPositi
 
 class VertexMath:
 
-	# Devuelve un Array con estos tres puntos (Vector2) en orden:
-	#  [bottom_in_x_highest, bottom_in_x_middle, top_in_x_lowest]
-	#
+	## devuelve la coordenada Y en un segmento para una X dada
+	## si X está fuera del segmento, devuelve NAN
+	static func get_y_at_x_in_segment(p1:Vector2, p2:Vector2, x:float) -> float:
+		if (p1.x <= x and x <= p2.x) or (p2.x <= x and x <= p1.x):
+			var y = p1.y + (p2.y - p1.y) * ((x - p1.x) / (p2.x - p1.x))
+			return y
+		else:
+			return NAN
+			
+			
+
+
 	# Parámetros:
 	# - container: Node2D que contiene CollisionPolygon2D o CollisionShape2D.
 	# - x_highest: Coordenada X donde buscamos la intersección con Y mínima.
@@ -417,17 +426,18 @@ class VertexMath:
 	# - x_lowest:  Coordenada X donde buscamos la intersección con Y máxima.
 	#
 	# Retorna:
-	# - Un Array con 3 Vector2. Si no hay intersección en alguno, retorna Vector2.INF en su lugar.
+	# - Un Array con 4 Vector2. Si no hay intersección en alguno, retorna Vector2.INF en su lugar.
+	# [ bottom_in_x_highest, bottom_in_x_middle, top_in_x_middle, top_in_x_lowest ]
 	static func get_key_positions_opposed_in_one_pass(container: Node2D, x_at_highest: float, x_middle: float, x_at_lowest: float) -> Array[Vector2]:
 		var top_in_x_lowest := Vector2.INF
 		var bottom_in_x_middle := Vector2.INF
 		var bottom_in_x_highest := Vector2.INF
 		var top_in_x_middle := Vector2.INF
 
-		var best_top_lowest_y := -INF
-		var best_bottom_middle_y := INF
-		var best_bottom_highest_y := INF
-		var best_top_middle_y := -INF
+		var best_top_lowest_y := INF
+		var best_bottom_middle_y := -INF
+		var best_bottom_highest_y := -INF
+		var best_top_middle_y := INF
 
 		for child in container.get_children():
 
@@ -441,33 +451,16 @@ class VertexMath:
 					var p2 = child.global_transform * polygon[(i + 1) % polygon.size()]
 
 					if p1.x != p2.x:
-						# ---- x_at_highest, buscamos Y máxima ----
-						if (p1.x <= x_at_highest and x_at_highest <= p2.x) or (p2.x <= x_at_highest and x_at_highest <= p1.x):
-							var y_lowest = p1.y + (p2.y - p1.y) * ((x_at_highest - p1.x) / (p2.x - p1.x))
-							if y_lowest > best_top_lowest_y:
-								best_top_lowest_y = y_lowest
-								top_in_x_lowest = Vector2(x_at_highest, y_lowest)
-
-						# ---- x_middle, buscamos Y mínima ----
-						if (p1.x <= x_middle and x_middle <= p2.x) or (p2.x <= x_middle and x_middle <= p1.x):
-							var y_middle = p1.y + (p2.y - p1.y) * ((x_middle - p1.x) / (p2.x - p1.x))
-							if y_middle < best_bottom_middle_y:
-								best_bottom_middle_y = y_middle
-								bottom_in_x_middle = Vector2(x_middle, y_middle)
 						
-						# ---- x_middle, buscamos Y máxima ----
-						if (p1.x <= x_middle and x_middle <= p2.x) or (p2.x <= x_middle and x_middle <= p1.x):
-							var y_middle = p1.y + (p2.y - p1.y) * ((x_middle - p1.x) / (p2.x - p1.x))
-							if y_middle > best_top_middle_y:
-								best_top_middle_y = y_middle
-								top_in_x_middle = Vector2(x_middle, y_middle)
-
-						# ---- x_at_lowest, buscamos Y mínima ----
-						if (p1.x <= x_at_lowest and x_at_lowest <= p2.x) or (p2.x <= x_at_lowest and x_at_lowest <= p1.x):
-							var y_highest = p1.y + (p2.y - p1.y) * ((x_at_lowest - p1.x) / (p2.x - p1.x))
-							if y_highest < best_bottom_highest_y:
-								best_bottom_highest_y = y_highest
-								bottom_in_x_highest = Vector2(x_at_lowest, y_highest)
+						var y:float = get_y_at_x_in_segment(p1, p2, x_at_lowest)
+						if y != NAN and y < best_top_lowest_y: best_top_lowest_y = y
+						
+						y = get_y_at_x_in_segment(p1, p2, x_middle)
+						if y != NAN and y < best_top_middle_y: best_top_middle_y = y
+						if y != NAN and y > best_bottom_middle_y: best_bottom_middle_y = y
+						
+						y = get_y_at_x_in_segment(p1, p2, x_at_highest)
+						if y != NAN and y > best_bottom_highest_y: best_bottom_highest_y = y
 
 			# --------------------------------------------------------------
 			# 2) CollisionShape2D específico: RECT, CÍRCULO, CÁPSULA, etc.
@@ -486,83 +479,39 @@ class VertexMath:
 						Vector2(-ext.x,  ext.y)
 					]
 					for i in range(rect_points.size()):
-						var gp1 = xf * rect_points[i]
-						var gp2 = xf * rect_points[(i + 1) % rect_points.size()]
-						if gp1.x != gp2.x:
+						var p1 = xf * rect_points[i]
+						var p2 = xf * rect_points[(i + 1) % rect_points.size()]
+						if p1.x != p2.x:
 
-							# x_at_highest
-							if (gp1.x <= x_at_highest and x_at_highest <= gp2.x) or (gp2.x <= x_at_highest and x_at_highest <= gp1.x):
-								var yL = gp1.y + (gp2.y - gp1.y) * ((x_at_highest - gp1.x) / (gp2.x - gp1.x))
-								if yL > best_top_lowest_y:
-									best_top_lowest_y = yL
-									top_in_x_lowest = Vector2(x_at_highest, yL)
-
-							# x_middle
-							if (gp1.x <= x_middle and x_middle <= gp2.x) or (gp2.x <= x_middle and x_middle <= gp1.x):
-								var yM = gp1.y + (gp2.y - gp1.y) * ((x_middle - gp1.x) / (gp2.x - gp1.x))
-								if yM < best_bottom_middle_y:
-									best_bottom_middle_y = yM
-									bottom_in_x_middle = Vector2(x_middle, yM)
-									
-							# x_middle
-							if (gp1.x <= x_middle and x_middle <= gp2.x) or (gp2.x <= x_middle and x_middle <= gp1.x):
-								var yM = gp1.y + (gp2.y - gp1.y) * ((x_middle - gp1.x) / (gp2.x - gp1.x))
-								if yM > best_bottom_middle_y:
-									best_top_middle_y = yM
-									top_in_x_middle = Vector2(x_middle, yM)
-
-							# x_at_lowest
-							if (gp1.x <= x_at_lowest and x_at_lowest <= gp2.x) or (gp2.x <= x_at_lowest and x_at_lowest <= gp1.x):
-								var yH = gp1.y + (gp2.y - gp1.y) * ((x_at_lowest - gp1.x) / (gp2.x - gp1.x))
-								if yH < best_bottom_highest_y:
-									best_bottom_highest_y = yH
-									bottom_in_x_highest = Vector2(x_at_lowest, yH)
+							var y:float = get_y_at_x_in_segment(p1, p2, x_at_lowest)
+							if y != NAN and y < best_top_lowest_y: best_top_lowest_y = y
+							
+							y = get_y_at_x_in_segment(p1, p2, x_middle)
+							if y != NAN and y < best_top_middle_y: best_top_middle_y = y
+							if y != NAN and y > best_bottom_middle_y: best_bottom_middle_y = y
+							
+							y = get_y_at_x_in_segment(p1, p2, x_at_highest)
+							if y != NAN and y > best_bottom_highest_y: best_bottom_highest_y = y
 
 				# -------------------- CÍRCULO --------------------
 				elif shape is CircleShape2D:
 					var r = shape.radius
 					var c = xf.origin
 
-
-					# x_at_highest (Y máx)
-					var hits_l = check_circle_intersections(c, r, x_at_highest)
-					if hits_l.size() > 0:
-						if hits_l[1] > best_top_lowest_y:
-							best_top_lowest_y = hits_l[1]
-							top_in_x_lowest = Vector2(x_at_highest, hits_l[1])
-						if hits_l[0] > best_top_lowest_y:
-							best_top_lowest_y = hits_l[0]
-							top_in_x_lowest = Vector2(x_at_highest, hits_l[0])
-
-					# x_middle (Y mín)
-					var hits_m = check_circle_intersections(c, r, x_middle)
-					if hits_m.size() > 0:
-						if hits_m[0] < best_bottom_middle_y:
-							best_bottom_middle_y = hits_m[0]
-							bottom_in_x_middle = Vector2(x_middle, hits_m[0])
-						if hits_m[1] < best_bottom_middle_y:
-							best_bottom_middle_y = hits_m[1]
-							bottom_in_x_middle = Vector2(x_middle, hits_m[1])
-						
-						if hits_m[0] > best_top_middle_y:
-							best_top_middle_y = hits_m[0]
-							top_in_x_middle = Vector2(x_middle, hits_m[0])
-						if hits_m[1] > best_top_middle_y:
-							best_top_middle_y = hits_m[1]
-							top_in_x_middle = Vector2(x_middle, hits_m[1])
-							
+					var y_hits:Array[float] = check_circle_intersections(c, r, x_at_lowest)
+					if not y_hits.is_empty() and y_hits[0] < best_top_lowest_y: best_top_lowest_y = y_hits[0]
+					if not y_hits.is_empty() and y_hits[1] < best_top_lowest_y: best_top_lowest_y = y_hits[1]
 					
-
-					# x_at_lowest (Y mín)
-					var hits_h = check_circle_intersections(c, r, x_at_lowest)
-					if hits_h.size() > 0:
-						if hits_h[0] < best_bottom_highest_y:
-							best_bottom_highest_y = hits_h[0]
-							bottom_in_x_highest = Vector2(x_at_lowest, hits_h[0])
-						if hits_h[1] < best_bottom_highest_y:
-							best_bottom_highest_y = hits_h[1]
-							bottom_in_x_highest = Vector2(x_at_lowest, hits_h[1])
-
+					y_hits = check_circle_intersections(c, r, x_middle)
+					if not y_hits.is_empty() and y_hits[0] < best_top_middle_y: best_top_middle_y = y_hits[0]
+					if not y_hits.is_empty() and y_hits[1] < best_top_middle_y: best_top_middle_y = y_hits[1]
+					if not y_hits.is_empty() and y_hits[0] > best_bottom_middle_y: best_bottom_middle_y = y_hits[0]
+					if not y_hits.is_empty() and y_hits[1] > best_bottom_middle_y: best_bottom_middle_y = y_hits[1]
+					
+					y_hits = check_circle_intersections(c, r, x_at_highest)
+					if not y_hits.is_empty() and y_hits[0] > best_bottom_highest_y: best_bottom_highest_y = y_hits[0]
+					if not y_hits.is_empty() and y_hits[1] > best_bottom_highest_y: best_bottom_highest_y = y_hits[1]					
+					
 				# -------------------- CÁPSULA --------------------
 				elif shape is CapsuleShape2D:
 					var r_c = shape.radius
@@ -572,30 +521,32 @@ class VertexMath:
 					var top_center = Vector2(c_caps.x, c_caps.y - half_h)
 
 
-					# x_at_highest => busco Y máx
-					var y_lowest_caps = check_capsule_x(x_at_highest, r_c, bottom_center, top_center, true)
-					if y_lowest_caps > best_top_lowest_y:
-						best_top_lowest_y = y_lowest_caps
-						top_in_x_lowest = Vector2(x_at_highest, y_lowest_caps)
+					var y:float = check_capsule_x(x_at_lowest, r_c, bottom_center, top_center, false)
+					if y < best_top_lowest_y: best_top_lowest_y = y
+					
+					y = check_capsule_x(x_middle, r_c, bottom_center, top_center, false)
+					if y < best_top_middle_y: best_top_middle_y = y
+					y = check_capsule_x(x_middle, r_c, bottom_center, top_center, true)
+					if y > best_bottom_middle_y: best_bottom_middle_y = y
+					
+					y = check_capsule_x(x_at_highest, r_c, bottom_center, top_center, true)
+					if y > best_bottom_highest_y: best_bottom_highest_y = y
 
-					# x_middle => busco Y mín
-					var y_middle_caps = check_capsule_x(x_middle, r_c, bottom_center, top_center, false)
-					if y_middle_caps < best_bottom_middle_y:
-						best_bottom_middle_y = y_middle_caps
-						bottom_in_x_middle = Vector2(x_middle, y_middle_caps)
-						
-					var y_middle_caps_bot = check_capsule_x(x_middle, r_c, bottom_center, top_center, true)
-					if y_middle_caps_bot > best_top_middle_y:
-						best_top_middle_y = y_middle_caps_bot
-						top_in_x_middle = Vector2(x_middle, y_middle_caps_bot)
 
-					# x_at_lowest => busco Y mín
-					var y_highest_caps = check_capsule_x(x_at_lowest, r_c, bottom_center, top_center, false)
-					if y_highest_caps < best_bottom_highest_y:
-						best_bottom_highest_y = y_highest_caps
-						bottom_in_x_highest = Vector2(x_at_lowest, y_highest_caps)
-
-		return [bottom_in_x_highest, bottom_in_x_middle, top_in_x_middle, top_in_x_lowest]
+		if best_top_lowest_y != INF:
+			top_in_x_lowest = Vector2(x_at_lowest, best_top_lowest_y)
+		if best_top_middle_y != INF:
+			top_in_x_middle = Vector2(x_middle, best_top_middle_y)
+		if best_bottom_middle_y != -INF:
+			bottom_in_x_middle = Vector2(x_middle, best_bottom_middle_y)
+		if best_bottom_highest_y != -INF:
+			bottom_in_x_highest = Vector2(x_at_highest, best_bottom_highest_y)
+			
+		return [
+			bottom_in_x_highest,
+			bottom_in_x_middle,
+			top_in_x_middle,
+			top_in_x_lowest]
 
 	static func check_circle_intersections(c:Vector2, r:float, x_value: float) -> Array[float]:
 		# Devuelve la intersección más alta y más baja como Array [y_up, y_down], o null si no hay
