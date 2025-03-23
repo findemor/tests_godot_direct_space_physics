@@ -53,7 +53,11 @@ func _physics_process(delta: float) -> void:
 		## primero la posicion principal, desde el origen del raycast hasta el primer contacto (si la pieza cae, donde se para?)
 		var center_global_position:Vector2 = sweep_and_reubicate(shapes_structure, center_ray_cast.global_position)
 		
-		if search_secondary_lower_position:
+		## vemos si el la posicion central ya es la más lejana posible, eso significa que no hay obstaculos... no es necesario calcular otra opcion más baja
+		var is_max_length:bool = center_global_position.y == (center_ray_cast.target_position.y + center_ray_cast.global_position.y)
+		if is_max_length or not search_secondary_lower_position:
+			lower_shadow_container.visible = false
+		else:
 			## luego la posición alternativa, usando como apoyo la colisión de raycast más baja encontrada... ¿habría sitio para colocarla?
 			const CENTER_GLOBAL_POSITION_BELOW_PIXELS:float = 5 ## pixeles por debajo de la posición anterior que se colocará. Esta diferencia hace que ambas formas nunca indiquen el mismo hueco.
 			var center_top_y_boundary:float = center_ray_cast.global_position.y if center_global_position == Vector2.INF else center_global_position.y ##cogemos la posicion más álta en la que podria emplazarse
@@ -61,7 +65,7 @@ func _physics_process(delta: float) -> void:
 		
 		var end_time = Time.get_ticks_usec()
 	
-		prints("FPS", Engine.get_frames_per_second(), "Took: ", (end_time - start_time) / 1000.0, "ms", "center pos", shapes_structure.global_position, "lower pos", lower_shadow_container.global_position)
+		prints("FPS", Engine.get_frames_per_second(), "Took: ", (end_time - start_time) / 1000.0, "ms", "center pos", shapes_structure.global_position, "lower pos", lower_shadow_container.global_position, "center in max_length", is_max_length)
 		
 	## movimiento basico del personaje
 	if Input.is_action_pressed("ui_left"):
@@ -77,7 +81,7 @@ func _physics_process(delta: float) -> void:
 ## actualiza la información interna del sweeper para preparlo para el trabajo 
 func update_sweeper_data(origin_container:Node2D):
 	## obtenemos todas las shapes que contiene el nodo de origen
-	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_all_shapes(origin_container)
+	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_shapes_structure(origin_container)
 	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
 	sweeper.calculate_key_positions(origin_container)
 
