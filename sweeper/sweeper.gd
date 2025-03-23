@@ -26,24 +26,39 @@ static func get_shapes_structure(container:Node2D) -> ShapesStructure:
 	for child:Node2D in container.get_children():		
 		if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape):
 			
-			var shape_returned:ShapeData = ShapeData.new()
-			shape_returned.owner_global_transform = child.global_transform
-			shape_returned.owner_local_transform = child.transform
-			shape_returned.container_global_position = container.global_position
-			## transform trasladada al punto deseado
-			#shape_returned.anchor_global_transform = child.global_transform
-			#shape_returned.anchor_global_transform.origin = child.global_transform.origin - container.global_position + anchor_position
 			
 			if child is CollisionPolygon2D:
-				# Convertir el polígono en una shape y agregarla a la lista
-				var shape:ConvexPolygonShape2D = ConvexPolygonShape2D.new()
-				shape.points = child.polygon  # Asignar puntos del polígono
-				shape_returned.shape = shape
+				## descompone el poligono por si fuese concavo
+				var convex_polygons:Array[PackedVector2Array] = Geometry2D.decompose_polygon_in_convex(child.polygon)
+				for convex_polygon in convex_polygons:
+					
+					var shape_returned:ShapeData = ShapeData.new()
+					shape_returned.owner_global_transform = child.global_transform
+					shape_returned.owner_local_transform = child.transform
+					shape_returned.container_global_position = container.global_position
+					## transform trasladada al punto deseado
+					#shape_returned.anchor_global_transform = child.global_transform
+					#shape_returned.anchor_global_transform.origin = child.global_transform.origin - container.global_position + anchor_position
+
+					# Convertir el polígono en una shape y agregarla a la lista
+					var shape:ConvexPolygonShape2D = ConvexPolygonShape2D.new()
+					shape.points = convex_polygon #child.polygon  # Asignar puntos del polígono
+					shape_returned.shape = shape
+					
+					structure.shapes_data.append(shape_returned)
 			else:
 				# Si es CollisionShape2D, simplemente agregar su shape
-				shape_returned.shape = child.shape
 				
-			structure.shapes_data.append(shape_returned)
+				var shape_returned:ShapeData = ShapeData.new()
+				shape_returned.owner_global_transform = child.global_transform
+				shape_returned.owner_local_transform = child.transform
+				shape_returned.container_global_position = container.global_position
+				## transform trasladada al punto deseado
+				#shape_returned.anchor_global_transform = child.global_transform
+				#shape_returned.anchor_global_transform.origin = child.global_transform.origin - container.global_position + anchor_position
+				
+				shape_returned.shape = child.shape
+				structure.shapes_data.append(shape_returned)
 
 	return structure
 

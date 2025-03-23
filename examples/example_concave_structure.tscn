@@ -75,7 +75,7 @@ position = Vector2(165, 268)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ConcaveStructure"]
 position = Vector2(-3, -61)
-polygon = PackedVector2Array(112, -21, -36, -21, -21, 19, -25, 117, -111, 117, -105, 159, 86, 177, 85, 146, 15, 117, 15, 20, 111, 21)
+polygon = PackedVector2Array(57, 17, -3, 15, -6, 37, -8, 105, -51, 117, -45, 137, 56, 152, 60, 133, 15, 117, 14, 38, 58, 35)
 
 [node name="VisualDebugMarkers" type="Node2D" parent="."]
 
