@@ -81,9 +81,9 @@ func _physics_process(delta: float) -> void:
 ## actualiza la información interna del sweeper para preparlo para el trabajo 
 func update_sweeper_data(origin_container:Node2D):
 	## obtenemos todas las shapes que contiene el nodo de origen
-	var all_shapes:Array[Sweeper.ShapeData] = Sweeper.get_shapes_structure(origin_container)
-	sweeper.initialize(get_world_2d().direct_space_state, all_shapes )
-	sweeper.calculate_key_positions(origin_container)
+	var structure:Sweeper.ShapesStructure = Sweeper.get_shapes_structure(origin_container)
+	sweeper.initialize(get_world_2d().direct_space_state, structure )
+	sweeper.calculate_key_positions(structure)
 
 ## escanea verticalmente una posición valida para la estructura, desde la posicion lower_collision, hasta que la estructura llegue a la posicion limite indicada
 func scan_in_hole_and_reubicate(origin_container:Node2D, lower_collision:Vector2, center_top_y_boundary:float):

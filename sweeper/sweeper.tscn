@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://dot48e4qswm1p"]
+
+[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://sweeper/sweeper.gd" id="1_xq0fq"]
+
+[node name="Sweeper" type="Node"]
+script = ExtResource("1_xq0fq")
+collision_mask = 3
+collision_margin = 0.5

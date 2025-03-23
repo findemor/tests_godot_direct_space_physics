@@ -1,28 +1,19 @@
-[gd_scene load_steps=7 format=3 uid="uid://b3souq1mw5xxw"]
+[gd_scene load_steps=4 format=3 uid="uid://bllmvyt66lpxm"]
 
-[ext_resource type="Script" uid="uid://d2k8xlahcfwt0" path="res://examples/shapes_structure.gd" id="1_05j5n"]
-[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://sweeper/sweeper.gd" id="2_bxxer"]
+[ext_resource type="Script" uid="uid://d2k8xlahcfwt0" path="res://examples/example_scene.gd" id="1_6vci0"]
+[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://sweeper/sweeper.gd" id="2_uwdl6"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ldups"]
 radius = 25.0
 height = 60.0
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_6p1b5"]
-radius = 19.0
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wk7hv"]
-size = Vector2(56, 24)
-
-[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_2c4wj"]
-points = PackedVector2Array(-29, -26, -67, -2, -28, 28)
-
-[node name="Node2D" type="Node2D" node_paths=PackedStringArray("shapes_structure", "sweeper")]
-script = ExtResource("1_05j5n")
-shapes_structure = NodePath("ShapesStructure")
+[node name="ExampleConcaveStructure" type="Node2D" node_paths=PackedStringArray("shapes_structure", "sweeper")]
+script = ExtResource("1_6vci0")
+shapes_structure = NodePath("ConcaveStructure")
 sweeper = NodePath("Sweeper")
 
 [node name="Sweeper" type="Node" parent="."]
-script = ExtResource("2_bxxer")
+script = ExtResource("2_uwdl6")
 collision_mask = 3
 collision_margin = 0.5
 
@@ -79,23 +70,12 @@ position = Vector2(25, 0)
 target_position = Vector2(0, 500)
 collision_mask = 2
 
-[node name="ShapesStructure" type="Area2D" parent="."]
+[node name="ConcaveStructure" type="Area2D" parent="."]
 position = Vector2(165, 268)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ShapesStructure"]
-position = Vector2(-1, -46)
-shape = SubResource("CircleShape2D_6p1b5")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="ShapesStructure"]
-position = Vector2(-1, 50)
-shape = SubResource("RectangleShape2D_wk7hv")
-
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="ShapesStructure"]
-shape = SubResource("ConvexPolygonShape2D_2c4wj")
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ShapesStructure"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ConcaveStructure"]
 position = Vector2(-3, -61)
-polygon = PackedVector2Array(-29, -26, -67, -2, -28, 28)
+polygon = PackedVector2Array(112, -21, -36, -21, -21, 19, -25, 117, -111, 117, -105, 159, 86, 177, 85, 146, 15, 117, 15, 20, 111, 21)
 
 [node name="VisualDebugMarkers" type="Node2D" parent="."]
 

@@ -12,14 +12,16 @@ const END_MOTION_CONTACT_GUARANTEE_MARGIN:float = 10 ## pixeles que se alarga el
 @export var collide_with_bodies:bool = true
 @export var collision_margin:float = 0.0
 
-var shapes:Array[ShapeData] = [] ## información sobre las formas que componen la estructura que intentará reposicionarse
+var _shapes_structure:ShapesStructure ## información sobre las formas que componen la estructura que intentará reposicionarse
 var space_state: PhysicsDirectSpaceState2D  ## Espacio de física en el que se realiza la búsqueda
 var key_positions:StructureKeyPositions ## posiciones clave, hay que actualizarlas explicitamente llamnado a calculate_key_positions
 	
 ## obtiene la estructura de formas: la lista de todas las shapes de los CollisionPolygon2D o CollisionShape2D anidados en Nodo
 ## si alguno de los poligonos es concavo, puede dar resultados inesperados
-static func get_shapes_structure(container:Node2D) -> Array[ShapeData]:
-	var shapes:Array[ShapeData] = []  # Lista para almacenar todas las shapes
+static func get_shapes_structure(container:Node2D) -> ShapesStructure:
+	var structure:ShapesStructure = ShapesStructure.new()
+	structure.shapes_data = []  # Lista para almacenar todas las shapes
+	structure.container_global_position = container.global_position
 	
 	for child:Node2D in container.get_children():		
 		if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape):
@@ -41,9 +43,9 @@ static func get_shapes_structure(container:Node2D) -> Array[ShapeData]:
 				# Si es CollisionShape2D, simplemente agregar su shape
 				shape_returned.shape = child.shape
 				
-			shapes.append(shape_returned)
+			structure.shapes_data.append(shape_returned)
 
-	return shapes
+	return structure
 
 ## devuelve un porcentaje de 0 a 1 que determina el grado de avance que ha alcanzado una posición en la trayectoria formada por los puntos de origen y destino
 static func distance_pct(origin: Vector2, target: Vector2, pos: Vector2) -> float:
@@ -59,17 +61,17 @@ static func distance_pct(origin: Vector2, target: Vector2, pos: Vector2) -> floa
 ## configura el Sweeper antes de poder hacer su trabajo
 ## physics_direct_space_state: espacio de físicas en el que se realizarán los cálculos
 ## shapes_structure: estructura de formas obtenida con get_shapes_structure
-func initialize(physics_direct_space_state: PhysicsDirectSpaceState2D, shapes_structure:Array[ShapeData]) -> void:
+func initialize(physics_direct_space_state: PhysicsDirectSpaceState2D, shapes_structure:ShapesStructure, calculate_key_positions:bool = false) -> void:
 	space_state = physics_direct_space_state
-	shapes = shapes_structure
+	_shapes_structure = shapes_structure
+	if calculate_key_positions:
+		calculate_key_positions(shapes_structure)
 
-## TODO calculate al inicializar, opcionalmente.
-## TODO calculate desde la shapes_structure?
 ## TODO obtener poligonos desde una sola forma concava 
 
 ## actualiza el valor de key_positions necesario para los calculos en agujeros
-func calculate_key_positions(origin_container:Node2D):
-	key_positions = get_key_positions(origin_container)
+func calculate_key_positions(shapes_structure:ShapesStructure):
+	key_positions = get_key_positions(shapes_structure)
 
 ## Devuelve la posición en la que podría instanciarse la estructura sin colision de ninguna de las formas que la forman
 ## Mantiene la posición relativa de las formas entre si, y su rotación global, pero reposicionando la estructura en origin_position
@@ -82,7 +84,7 @@ func sweep(origin_position:Vector2, cast_length:Vector2, excluded_rids:Array[RID
 	var motion_max:SweepingResult = null
 	
 	var sweeping_result:SweepingResult = null
-	for shape in shapes:
+	for shape in _shapes_structure.shapes_data:
 		sweeping_result = _sweep(shape, cast_length, origin_position, excluded_rids)
 		if sweeping_result != null:
 			## observamos si los valores de desplazamiento máximo o minimo deben recalcularse para alguna de las formas
@@ -104,7 +106,7 @@ func sweep(origin_position:Vector2, cast_length:Vector2, excluded_rids:Array[RID
 ## podría no devolver todas las colisiones si existen muchos solapamientos (se usa el limite de colisiones por defecto para cada forma)
 func intersects(anchor_global_position:Vector2, excluded_rids:Array[RID] = [], get_all_collisions:bool = false) -> Array[RID]:
 	var rids:Array[RID] = []
-	for shape in shapes:
+	for shape in _shapes_structure.shapes_data:
 		var shape_colliding_rids:Array[RID] = _shape_intersects(shape, anchor_global_position, excluded_rids)
 		rids.append_array(shape_colliding_rids)
 		if not get_all_collisions and not rids.is_empty(): break ## si basta con detectar alguna condicion para parar y ya tenemos alguna
@@ -225,8 +227,7 @@ func scan_inside_hole(bottom_support_limit_pos:Vector2, center_min_y_allowed:flo
 		return Vector2.INF
 
 ## Obtiene los puntos de apoyo más relevantes del nodo, analizando las formas que contiene
-## container: nodo que contiene los nodos CollisionPolygon o CollisionShape que se analizarán
-func get_key_positions(container: Node2D) -> StructureKeyPositions:
+func get_key_positions(shapes_structure: ShapesStructure) -> StructureKeyPositions:
 	###############
 	## PRIMER PASO: hallamos lowest_point (Y mayor) y highest_point (Y menor) en todas las formas
 	
@@ -235,11 +236,17 @@ func get_key_positions(container: Node2D) -> StructureKeyPositions:
 	var highest_point = Vector2.INF
 	var highest_y = INF
 
-	for child in container.get_children():
-		if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
-			var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
+	for shape_data in shapes_structure.shapes_data:
+		var shape:Shape2D = shape_data.shape
+		
+	#for child in container.get_children():
+		#if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
+		#	var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
+		
+		if shape is ConvexPolygonShape2D:
+			var polygon = shape.points
 			for i in range(polygon.size()):
-				var gp = child.global_transform * polygon[i]
+				var gp = shape_data.owner_global_transform * polygon[i]
 				if gp.y > lowest_y:
 					lowest_y = gp.y
 					lowest_point = gp
@@ -247,10 +254,11 @@ func get_key_positions(container: Node2D) -> StructureKeyPositions:
 					highest_y = gp.y
 					highest_point = gp
 
-		elif child is CollisionShape2D:
-			var xf = child.global_transform
-			var shape = child.shape
-
+		#elif child is CollisionShape2D:
+			#var xf = child.global_transform
+			#var shape = child.shape
+		else:
+			var xf:Transform2D = shape_data.owner_global_transform 
 			if shape is RectangleShape2D:
 				var ext = shape.size * 0.5
 				var rect_points = [
@@ -296,10 +304,10 @@ func get_key_positions(container: Node2D) -> StructureKeyPositions:
 	################
 	## SEGUNDO PASO: buscamos las posiciones opuestas	
 	
-	var key_positions_opposed:Array[Vector2] = GeometryUtils.get_key_positions_opposed_in_one_pass(container, highest_point.x, container.global_position.x, lowest_point.x)
+	var key_positions_opposed:Array[Vector2] = GeometryUtils.get_key_positions_opposed_in_one_pass(shapes_structure, highest_point.x, shapes_structure.container_global_position.x, lowest_point.x)
 
 	var key_positions:StructureKeyPositions = StructureKeyPositions.new()
-	key_positions.center = container.global_position
+	key_positions.center = _shapes_structure.container_global_position#container.global_position
 	key_positions.center_point_highest = key_positions_opposed[2] #top_in_x_middle
 	key_positions.center_point_lowest = key_positions_opposed[1] #bottom_in_x_middle
 	key_positions.lowest_point = lowest_point
@@ -315,6 +323,10 @@ func get_key_positions(container: Node2D) -> StructureKeyPositions:
 	
 	return key_positions
 
+## Contenedor de información de la estructura
+class ShapesStructure:
+	var shapes_data:Array[ShapeData] ## Lista de formas que forman la estructura
+	var container_global_position:Vector2 ## posicion del centro del contenedor en el momento de la obtencion
 
 ## Clase que contiene la información del resultado del calculo del barrido de una forma inddividual
 class SweepingResult:
@@ -365,7 +377,7 @@ class GeometryUtils:
 	## Retorna:
 	## - Un Array con 4 Vector2. Si no hay intersección en alguno, retorna Vector2.INF en su lugar.
 	## [ bottom_in_x_highest, bottom_in_x_middle, top_in_x_middle, top_in_x_lowest ]
-	static func get_key_positions_opposed_in_one_pass(container: Node2D, x_at_highest: float, x_middle: float, x_at_lowest: float) -> Array[Vector2]:
+	static func get_key_positions_opposed_in_one_pass(shapes_structure: ShapesStructure, x_at_highest: float, x_middle: float, x_at_lowest: float) -> Array[Vector2]:
 		var top_in_x_lowest := Vector2.INF
 		var bottom_in_x_middle := Vector2.INF
 		var bottom_in_x_highest := Vector2.INF
@@ -376,16 +388,24 @@ class GeometryUtils:
 		var best_bottom_highest_y := -INF
 		var best_top_middle_y := INF
 
-		for child in container.get_children():
+		#for child in container.get_children():
+		for shape_data in shapes_structure.shapes_data:
+			var shape:Shape2D = shape_data.shape
 
 			# --------------------------------------------------------------
 			# 1) Polígonos (CollisionPolygon2D o CollisionShape2D con Convex)
 			# --------------------------------------------------------------
-			if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
-				var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
+			#if child is CollisionPolygon2D or (child is CollisionShape2D and child.shape is ConvexPolygonShape2D):
+				#var polygon = child.polygon if child is CollisionPolygon2D else child.shape.points
+				
+			if shape is ConvexPolygonShape2D:
+				var polygon = shape.points
+				
 				for i in range(polygon.size()):
-					var p1 = child.global_transform * polygon[i]
-					var p2 = child.global_transform * polygon[(i + 1) % polygon.size()]
+					#var p1 = child.global_transform * polygon[i]
+					#var p2 = child.global_transform * polygon[(i + 1) % polygon.size()]
+					var p1 = shape_data.owner_global_transform * polygon[i]
+					var p2 = shape_data.owner_global_transform * polygon[(i + 1) % polygon.size()]
 
 					if p1.x != p2.x:
 						
@@ -402,9 +422,11 @@ class GeometryUtils:
 			# --------------------------------------------------------------
 			# 2) CollisionShape2D específico: RECT, CÍRCULO, CÁPSULA, etc.
 			# --------------------------------------------------------------
-			elif child is CollisionShape2D:
-				var xf = child.global_transform
-				var shape = child.shape
+			#elif child is CollisionShape2D:
+			else:
+				#var xf = child.global_transform
+				#var shape = child.shape
+				var xf:Transform2D = shape_data.owner_global_transform
 
 				# -------------------- RECTÁNGULO --------------------
 				if shape is RectangleShape2D:
