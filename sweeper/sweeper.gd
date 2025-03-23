@@ -65,6 +65,10 @@ func initialize(physics_direct_space_state: PhysicsDirectSpaceState2D, shapes_st
 	space_state = physics_direct_space_state
 	shapes = shapes_structure
 
+## TODO calculate al inicializar, opcionalmente.
+## TODO calculate desde la shapes_structure?
+## TODO obtener poligonos desde una sola forma concava 
+
 ## actualiza el valor de key_positions
 func calculate_key_positions(origin_container:Node2D):
 	key_positions = get_key_positions(origin_container)

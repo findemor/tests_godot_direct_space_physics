@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3 uid="uid://b3souq1mw5xxw"]
 
-[ext_resource type="Script" uid="uid://d2k8xlahcfwt0" path="res://v5_check/v5.gd" id="1_o1spk"]
-[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://v5_check/sweeper_v5.gd" id="2_vpo6d"]
+[ext_resource type="Script" uid="uid://d2k8xlahcfwt0" path="res://examples/shapes_structure.gd" id="1_05j5n"]
+[ext_resource type="Script" uid="uid://de5uwvrbamlnj" path="res://sweeper/sweeper.gd" id="2_bxxer"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ldups"]
 radius = 25.0
@@ -16,45 +16,52 @@ size = Vector2(56, 24)
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_2c4wj"]
 points = PackedVector2Array(-29, -26, -67, -2, -28, 28)
 
-[node name="Node2D" type="Node2D" node_paths=PackedStringArray("origin_area_2d", "sweeper")]
-script = ExtResource("1_o1spk")
-origin_area_2d = NodePath("OriginArea2D")
+[node name="Node2D" type="Node2D" node_paths=PackedStringArray("shapes_structure", "sweeper")]
+script = ExtResource("1_05j5n")
+shapes_structure = NodePath("ShapesStructure")
 sweeper = NodePath("Sweeper")
 
-[node name="Floor" type="RigidBody2D" parent="."]
+[node name="Sweeper" type="Node" parent="."]
+script = ExtResource("2_bxxer")
+collision_mask = 3
+collision_margin = 0.5
+
+[node name="ObstaclesContainer" type="Node2D" parent="."]
+
+[node name="Floor" type="RigidBody2D" parent="ObstaclesContainer"]
 position = Vector2(562, 210)
 collision_layer = 2
 collision_mask = 2
 gravity_scale = 0.0
 
-[node name="Polygon2D" type="Polygon2D" parent="Floor"]
+[node name="Polygon2D" type="Polygon2D" parent="ObstaclesContainer/Floor"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 52, 40, -71, 45, -64, -43)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ObstaclesContainer/Floor"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 73, -3, 52, 41, -71, 45, -64, -43)
 
-[node name="Floor2" type="RigidBody2D" parent="."]
+[node name="Floor2" type="RigidBody2D" parent="ObstaclesContainer"]
 position = Vector2(551, 401)
 collision_layer = 2
 collision_mask = 2
 gravity_scale = 0.0
 
-[node name="Polygon2D" type="Polygon2D" parent="Floor2"]
+[node name="Polygon2D" type="Polygon2D" parent="ObstaclesContainer/Floor2"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 201, -3, 231, -53, 287, -4, 284, 57, -71, 45, -64, -43)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor2"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ObstaclesContainer/Floor2"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 199.205, -3.39865, 229, -54, 287, -4, 282, 58, -71, 45, -64, -43)
 
-[node name="Floor3" type="RigidBody2D" parent="."]
+[node name="Floor3" type="RigidBody2D" parent="ObstaclesContainer"]
 position = Vector2(776, 52)
 collision_layer = 2
 collision_mask = 2
 gravity_scale = 0.0
 
-[node name="Polygon2D" type="Polygon2D" parent="Floor3"]
+[node name="Polygon2D" type="Polygon2D" parent="ObstaclesContainer/Floor3"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 201, -3, 231, -53, 287, -4, 284, 57, -71, 45, -64, -43)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Floor3"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ObstaclesContainer/Floor3"]
 polygon = PackedVector2Array(-1, -46, -5, -2, 199.205, -3.39865, 229, -54, 287, -4, 282, 58, -71, 45, -64, -43)
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="."]
@@ -62,11 +69,6 @@ position = Vector2(592, 47)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
 shape = SubResource("CapsuleShape2D_ldups")
-
-[node name="Line2D" type="Line2D" parent="CharacterBody2D"]
-points = PackedVector2Array(0, -600, 0, 600)
-width = 1.0
-default_color = Color(1, 0.160784, 1, 0.454902)
 
 [node name="CenterRayCast2D" type="RayCast2D" parent="CharacterBody2D"]
 target_position = Vector2(0, 500)
@@ -77,71 +79,61 @@ position = Vector2(25, 0)
 target_position = Vector2(0, 500)
 collision_mask = 2
 
-[node name="Sweeper" type="Node" parent="."]
-script = ExtResource("2_vpo6d")
-collision_mask = 3
-collision_margin = 0.5
-
-[node name="OriginArea2D" type="Area2D" parent="."]
+[node name="ShapesStructure" type="Area2D" parent="."]
 position = Vector2(165, 268)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="OriginArea2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ShapesStructure"]
 position = Vector2(-1, -46)
 shape = SubResource("CircleShape2D_6p1b5")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="OriginArea2D"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="ShapesStructure"]
 position = Vector2(-1, 50)
 shape = SubResource("RectangleShape2D_wk7hv")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="OriginArea2D"]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="ShapesStructure"]
 shape = SubResource("ConvexPolygonShape2D_2c4wj")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="OriginArea2D"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="ShapesStructure"]
 position = Vector2(-3, -61)
 polygon = PackedVector2Array(-29, -26, -67, -2, -28, 28)
 
-[node name="OriginArea2D2" type="Area2D" parent="."]
-position = Vector2(165, 268)
+[node name="VisualDebugMarkers" type="Node2D" parent="."]
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="OriginArea2D2"]
-position = Vector2(-1, 50)
-shape = SubResource("RectangleShape2D_wk7hv")
-
-[node name="CenterMarker" type="Polygon2D" parent="."]
+[node name="CenterMarker" type="Polygon2D" parent="VisualDebugMarkers"]
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="TopMarkerTop" type="Polygon2D" parent="."]
+[node name="TopMarkerTop" type="Polygon2D" parent="VisualDebugMarkers"]
 color = Color(0, 0.760266, 0.222547, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="TopMarkerBot" type="Polygon2D" parent="."]
+[node name="TopMarkerBot" type="Polygon2D" parent="VisualDebugMarkers"]
 rotation = 3.14159
 color = Color(0, 0.760266, 0.222547, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="BotMarkerTop" type="Polygon2D" parent="."]
+[node name="BotMarkerTop" type="Polygon2D" parent="VisualDebugMarkers"]
 color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="BotMarkerBot" type="Polygon2D" parent="."]
+[node name="BotMarkerBot" type="Polygon2D" parent="VisualDebugMarkers"]
 rotation = 3.14159
 color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-3, -4, 0, 0, 3, -4)
 
-[node name="TopCollision" type="Polygon2D" parent="."]
+[node name="TopCollision" type="Polygon2D" parent="VisualDebugMarkers"]
 color = Color(0, 0.760266, 0.222547, 1)
 polygon = PackedVector2Array(-10, 7, 0, 0, -10, -7)
 
-[node name="BotCollision" type="Polygon2D" parent="."]
+[node name="BotCollision" type="Polygon2D" parent="VisualDebugMarkers"]
 color = Color(1, 0.227451, 0, 1)
 polygon = PackedVector2Array(-10, 7, 0, 0, -10, -7)
 
-[node name="CenterCollision" type="Polygon2D" parent="."]
+[node name="CenterCollision" type="Polygon2D" parent="VisualDebugMarkers"]
 position = Vector2(47, 21)
 color = Color(1, 0.937255, 0, 1)
 polygon = PackedVector2Array(-7, 7, 5, 7, 5, 3, -3, 3, -3, -4, 5, -4, 5, -7, -7, -7)
 
-[node name="RightCollision" type="Polygon2D" parent="."]
+[node name="RightCollision" type="Polygon2D" parent="VisualDebugMarkers"]
 position = Vector2(68, 21)
 color = Color(1, 0.937255, 0, 1)
 polygon = PackedVector2Array(-7, 7, -3, 7, -3, 3, 0, 7, 5, 7, 0, 0, 5, 0, 5, -7, -7, -7)
